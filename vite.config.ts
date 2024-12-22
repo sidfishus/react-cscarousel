@@ -4,7 +4,7 @@ import dts from "vite-plugin-dts"
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(),dts({ tsconfigPath: './tsconfig.app.json' })],
+  plugins: [react(),dts({ tsconfigPath: './tsconfig.app.json', exclude: ["./src/TestApp.tsx", "./src/testappentrypoint.tsx"] })],
   build: {
     lib: {
       name: "react-cscarousel",
@@ -13,6 +13,7 @@ export default defineConfig({
     rollupOptions: {
       external: ["react", "react-dom","react/jsx-runtime"],
       output: {
+        assetFileNames: "styles.css",
         globals: {
           react: "react",
           "react-dom": "react-dom",
