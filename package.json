@@ -3,10 +3,11 @@
   "repository": "sidfishus/react-cscarousel",
   "author": "sidfishus",
   "description": "A re-usable react carousel.",
-  "version": "0.0.2",
+  "version": "0.0.9",
   "type": "module",
   "license": "GPL-3.0",
   "types": "./dist/index.d.ts",
+  "files": ["dist"],
   "main": "./dist/index.umd.cjs",
   "module": "./dist/index.js",
   "exports": {

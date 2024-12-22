@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite'
 import react from "@vitejs/plugin-react-swc"
-//import typescript from "rollup-plugin-typescript2"
 import dts from "vite-plugin-dts"
 
 // https://vite.dev/config/
@@ -9,7 +8,7 @@ export default defineConfig({
   build: {
     lib: {
       name: "react-cscarousel",
-      entry: ["src/carousel/index.tsx"],
+      entry: ["src/index.tsx"],
     },
     rollupOptions: {
       external: ["react", "react-dom","react/jsx-runtime"],
