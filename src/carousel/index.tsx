@@ -78,7 +78,7 @@ export function Carousel<FILE_T extends CarouselFileDetails>(props: CarouselProp
     // We need to be able to reference the carousel in various places
     const carouselRef=useRef<HTMLDivElement>(null) as MutableRefObject<HTMLDivElement>;
 
-    console.log("Render carousel: ");
+    //console.log("Render carousel: ");
 
     //sidtodo thumbnails
 
@@ -291,8 +291,6 @@ const FileIndexIsDisplayed = (
 
     const displayedFiles=GetFilesDisplayed(carouselRef,files);
 
-    console.log(displayedFiles);
-
     if(displayedFiles[0] === idx)
         return true;
 
@@ -363,9 +361,11 @@ function GalleryFileComponent<FILE_T extends CarouselFileDetails>(props: Gallery
         ? "CarouselFile " + mainProps.getFileClass(isLoading)
         : "CarouselFile";
 
+    console.log(JSON.stringify(file) + " loadingIdListHasFile?: " + loadingNonState.current.loadingIdList.has(file.id) + " " + JSON.stringify(fileLoadingState));
+
     if(fileLoadingState.loadedSrc) {
 
-        console.log("SET STATE AND LOADED.......... " + fileLoadingState.loadedSrc);
+        //console.log("SET STATE AND LOADED.......... " + fileLoadingState.loadedSrc);
 
         return (
             <div className={fileContainerClass}>
@@ -380,7 +380,7 @@ function GalleryFileComponent<FILE_T extends CarouselFileDetails>(props: Gallery
 
         if(ShouldLoadFile(carouselRef, autoLoadLeftAndRightFiles, files, idx)) {
 
-            console.log("should load file. idx=" + idx);
+            console.log("should load file. file.id=" + file.id);
 
             if(loadFileOverride) {
                 loadingNonState.current.loadingIdList.add(file.id);
@@ -407,10 +407,14 @@ function GalleryFileComponent<FILE_T extends CarouselFileDetails>(props: Gallery
                 const domFile=new Image();
                 domFile.src=FileFullUrl(mainProps,file.src);
 
-                loadingNonState.current.loadingIdList.add(idx);
+                loadingNonState.current.loadingIdList.add(file.id);
 
                 domFile.onload = () => {
-                    console.log("LOASDED " + domFile.src);
+
+                    console.log(loadingNonState.current.loadingIdList);
+
+                    loadingNonState.current.loadingIdList.delete(file.id);
+                    //console.log("LOASDED " + domFile.src);
                     SetState(curState => MutateStateSetFileLoadedState(curState, {
                         isLoading: false,
                         loadedSrc: domFile.src,
@@ -418,13 +422,16 @@ function GalleryFileComponent<FILE_T extends CarouselFileDetails>(props: Gallery
                     }, file.id, true));
                 }
                 domFile.onerror = (e) => {
+                    loadingNonState.current.loadingIdList.delete(file.id);
                     console.log("failed to load " + JSON.stringify(e));
                     console.log("filename: " + domFile.src);
                 }
             }
 
             // Don't show the loading icon until after 100ms
-            if(!carouselRef.current && idx === 0) {
+            if(true === true) {
+                console.log("HERESDFKSDJFSDFKSDF");
+            //if(!carouselRef.current && idx === 0) {
 
                 //sidtodo test this.
                 //sidtodo test similar ,but when scrolling to another image and image is already loaded / cached.
