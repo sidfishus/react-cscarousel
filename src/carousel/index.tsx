@@ -9,8 +9,6 @@ import WhiteChevronLeft from "../images-deleteafter/white-chevron-left.svg";
 import WhiteChevronRight from "../images-deleteafter/white-chevron-right.svg";
 import CrossStaticSvg from "../images-deleteafter/cross.static.svg";
 
-//sidtodo check that scrolling through lots always loads the file. saw an example where this failed.
-
 export type SetSelectedFileFunc<FILE_T extends CarouselFileDetails> = (idx: number, file: FILE_T) => void;
 
 export type OnDeleteFileFunc<FILE_T extends CarouselFileDetails> = (idx: number, file: FILE_T) => void;
@@ -22,12 +20,12 @@ export type CarouselProps<FILE_T extends CarouselFileDetails> = {
     fileDir?: string;
     thumbnailDir?: string; //sidtodo remove: replace with fileDir
     showThumbnails?: boolean|undefined;
-    showChevrons?: boolean|undefined;
+    showChevrons?: boolean; // Defaults to true
     autoChangeMs?: number;
     OnClick?: (()=>void|undefined);
     loadFileOverride?: (url: string) => Promise<string>; //sidtodo why does this return a string? comment..
-    shouldLoad: boolean; //sidtodo comment this
-    autoLoadLeftAndRightFiles?: boolean;
+    shouldLoad: boolean; // Allows the client to override whether files should be loaded.
+    autoLoadLeftAndRightFiles?: boolean; // Defaults to true if not specified
     onDelete?: OnDeleteFileFunc<FILE_T>;
     getFileClass?: (isLoading: boolean)=>string;
     fileContainerClass?: string;
@@ -43,7 +41,7 @@ export type CarouselFileDetails = {
 }
 
 type FileLoadingState = {
-    loadedSrc: string|null;
+    src: string|null;
     error: boolean;
     isLoading: boolean;
 }
@@ -112,7 +110,7 @@ const CreateDefaultState = <FILE_T extends CarouselFileDetails,> (props: Carouse
     files.forEach(iterFile => {
 
         rv.loadingState.set(iterFile.id,{
-            loadedSrc: null,
+            src: null,
             error: false,
             isLoading: false
         });
@@ -128,7 +126,7 @@ type CarouselComponentProps<FILE_T extends CarouselFileDetails,> = {
     fileNonState: MutableRefObject<FileNonState>;
     delaySetSelectedFile: DelayedFunction;
     carouselRef: MutableRefObject<HTMLDivElement>;
-    showChevrons?: boolean|undefined;
+    showChevrons?: boolean;
     //sidtodo remove??
     OnClick?: (()=>void|undefined);
 }
@@ -136,7 +134,7 @@ type CarouselComponentProps<FILE_T extends CarouselFileDetails,> = {
 function CarouselComponent<FILE_T extends CarouselFileDetails>(props: CarouselComponentProps<FILE_T>) {
 
     const { fileState, SetFileState, fileNonState, delaySetSelectedFile, carouselRef,
-        showChevrons, OnClick, mainProps } = props;
+        OnClick, mainProps } = props;
 
     const { files } = mainProps;
 
@@ -151,7 +149,8 @@ function CarouselComponent<FILE_T extends CarouselFileDetails>(props: CarouselCo
         ShowFile(mainProps, curIdx=> GetCarouselFileRightIdx(curIdx, files), carouselRef,false, "smooth", fileNonState);
     }
 
-    //sidtodo here: press left chevron, scroll completely to other end. then press left twice. it won't load.
+    const showChevrons = mainProps.showChevrons === undefined || mainProps.showChevrons;
+
     return (
         <>
             <div ref={carouselRef} className={"CarouselContainer"}
@@ -201,7 +200,7 @@ const OnCarouselScroll = <FILE_T extends CarouselFileDetails,>(
 
         const fileId=files[iterIdx]!.id;
 
-        if(!fileState.loadingState.get(fileId)!.loadedSrc) {
+        if(!fileState.loadingState.get(fileId)!.src) {
             allFilesLoaded=false;
         }
     });
@@ -345,7 +344,7 @@ function GalleryFileComponent<FILE_T extends CarouselFileDetails>(props: Gallery
 
     const { idx, carouselRef, state, loadingNonState, SetState, mainProps } = props;
 
-    const { loadFileOverride, shouldLoad, autoLoadLeftAndRightFiles, files, loadingFile } = mainProps;
+    const { loadFileOverride, files, loadingFile } = mainProps;
 
     const { loadingState } = state;
 
@@ -361,102 +360,105 @@ function GalleryFileComponent<FILE_T extends CarouselFileDetails>(props: Gallery
         ? "CarouselFile " + mainProps.getFileClass(isLoading)
         : "CarouselFile";
 
-    console.log(JSON.stringify(file) + " loadingIdListHasFile?: " + loadingNonState.current.loadingIdList.has(file.id) + " " + JSON.stringify(fileLoadingState));
+    //console.log(JSON.stringify(file) + " loadingIdListHasFile?: " + loadingNonState.current.loadingIdList.has(file.id)
+    //  + " " + JSON.stringify(fileLoadingState));
 
-    if(fileLoadingState.loadedSrc) {
-
-        //console.log("SET STATE AND LOADED.......... " + fileLoadingState.loadedSrc);
+    if(fileLoadingState.src) {
 
         return (
             <div className={fileContainerClass}>
-                <img src={fileLoadingState.loadedSrc} className={getFileClass(false)} />
-                {file.allowDelete && <FileDeleteButton mainProps={mainProps} idx={idx} />}
+                <img src={fileLoadingState.src} className={getFileClass(fileLoadingState.isLoading)} />
+                {file.allowDelete && !fileLoadingState.error && !fileLoadingState.isLoading &&
+                    <FileDeleteButton mainProps={mainProps} idx={idx} />
+                }
             </div>
         );
     }
 
-    if (!loadingNonState.current.loadingIdList.has(file.id) && shouldLoad
-        && (!fileLoadingState.loadedSrc || fileLoadingState.error)) {
+    const autoLoadLeftAndRightFiles =mainProps.autoLoadLeftAndRightFiles === undefined
+        ? true
+        : mainProps.autoLoadLeftAndRightFiles;
 
-        if(ShouldLoadFile(carouselRef, autoLoadLeftAndRightFiles, files, idx)) {
+    const loadFile=
+        ShouldLoadFile(carouselRef, autoLoadLeftAndRightFiles, files, idx, loadingNonState.current, mainProps.shouldLoad);
 
-            console.log("should load file. file.id=" + file.id);
+    if(!loadFile) {
+        // Show the loading SVG
+        return (
+            <div className={fileContainerClass}>
+                <img src={FileFullUrl(mainProps,loadingFile)} className={getFileClass(true)} />
+            </div>
+        );
+    }
 
-            if(loadFileOverride) {
-                loadingNonState.current.loadingIdList.add(file.id);
+    if(loadFileOverride) {
+        loadingNonState.current.loadingIdList.add(file.id);
 
-                loadFileOverride(FileFullUrl(mainProps, file.src)).then((url: string) => {
-                    loadingNonState.current.loadingIdList.delete(file.id);
-                    SetState(curState => MutateStateSetFileLoadedState(curState, {
-                        loadedSrc: url,
-                        error: false,
-                        isLoading: false
-                    }, file.id, true));
-                }).catch(() => {
-                    loadingNonState.current.loadingIdList.delete(file.id);
+        loadFileOverride(FileFullUrl(mainProps, file.src)).then((url: string) => {
+            loadingNonState.current.loadingIdList.delete(file.id);
+            SetState(curState => MutateStateSetFileLoadedState(curState, {
+                src: url,
+                error: false,
+                isLoading: false
+            }, file.id, true));
+        }).catch(() => {
+            loadingNonState.current.loadingIdList.delete(file.id);
 
-                    //sidtodo create a better icon on loading.io
-                    SetState(curState => MutateStateSetFileLoadedState(curState, {
-                        loadedSrc: "/Files/fail-1.1s-200px.svg",
-                        error: true,
-                        isLoading: false
-                    }, file.id, true));
-                });
-            }
-            else {
-                const domFile=new Image();
-                domFile.src=FileFullUrl(mainProps,file.src);
+            //sidtodo create a better icon on loading.io
+            SetState(curState => MutateStateSetFileLoadedState(curState, {
+                src: "/Files/fail-1.1s-200px.svg",
+                error: true,
+                isLoading: false
+            }, file.id, true));
+        });
+    }
+    else {
+        const domFile=new Image();
+        domFile.src=FileFullUrl(mainProps,file.src);
 
-                loadingNonState.current.loadingIdList.add(file.id);
+        loadingNonState.current.loadingIdList.add(file.id);
 
-                domFile.onload = () => {
+        domFile.onload = () => {
 
-                    console.log(loadingNonState.current.loadingIdList);
+            console.log(loadingNonState.current.loadingIdList);
 
-                    loadingNonState.current.loadingIdList.delete(file.id);
-                    //console.log("LOASDED " + domFile.src);
-                    SetState(curState => MutateStateSetFileLoadedState(curState, {
-                        isLoading: false,
-                        loadedSrc: domFile.src,
-                        error: false,
-                    }, file.id, true));
-                }
-                domFile.onerror = (e) => {
-                    loadingNonState.current.loadingIdList.delete(file.id);
-                    console.log("failed to load " + JSON.stringify(e));
-                    console.log("filename: " + domFile.src);
-                }
-            }
-
-            // Don't show the loading icon until after 100ms
-            if(true === true) {
-                console.log("HERESDFKSDJFSDFKSDF");
-            //if(!carouselRef.current && idx === 0) {
-
-                //sidtodo test this.
-                //sidtodo test similar ,but when scrolling to another image and image is already loaded / cached.
-
-                // Show the loading SVG if the file is not loaded in 100 ms
-                setTimeout(() => {
-                    SetState(curState =>MutateStateSetFileLoadedState(curState, {
-                        loadedSrc: loadingFile,
-                        error: false,
-                        isLoading: true
-                    }, file.id, false));
-                }, 100);
-
-                return (
-                    <div className={fileContainerClass} />
-                );
-            }
+            loadingNonState.current.loadingIdList.delete(file.id);
+            //console.log("LOASDED " + domFile.src);
+            SetState(curState => MutateStateSetFileLoadedState(curState, {
+                isLoading: false,
+                src: domFile.src,
+                error: false,
+            }, file.id, true));
+        }
+        domFile.onerror = (e) => {
+            //sidtodo deal with errors.
+            loadingNonState.current.loadingIdList.delete(file.id);
+            console.log("failed to load " + JSON.stringify(e));
+            console.log("filename: " + domFile.src);
         }
     }
 
-    return (
-        <div className={fileContainerClass}>
-            <img src={FileFullUrl(mainProps,loadingFile)} className={getFileClass(true)} />
-        </div>
-    );
+    const isFirstTimeLoad=!carouselRef.current;
+
+    if(isFirstTimeLoad) {
+
+        // Don't show the loading SVG until after 100ms
+        // If the images are cached, and the client has a reasonably fast internet connection, this stops
+        //  the flicker from quickly going from the loading SVG to the loaded image.
+        setTimeout(() => {
+            SetState(curState =>MutateStateSetFileLoadedState(curState, {
+                src: FileFullUrl(mainProps,loadingFile),
+                error: false,
+                isLoading: true
+            }, file.id, false));
+        }, 100);
+
+        return (
+            <div className={fileContainerClass}>
+                <div className={getFileClass(true)} />
+            </div>
+        );
+    }
 }
 
 type FileDeleteButtonProps<FILE_T extends CarouselFileDetails> = {
@@ -480,7 +482,12 @@ function FileDeleteButton<FILE_T extends CarouselFileDetails>(props: FileDeleteB
 
 const ShouldLoadFile =
     (carouselRef: MutableRefObject<HTMLDivElement>, autoLoadLeftAndRightFiles: boolean|undefined,
-     files: CarouselFileDetails[], idx: number) => {
+     files: CarouselFileDetails[], idx: number, loadingNonState: FileNonState, shouldLoadClientOverride: boolean) => {
+
+        const file=files[idx];
+        const fileIsAlreadyLoading=loadingNonState.loadingIdList.has(file.id);
+        if(fileIsAlreadyLoading || !shouldLoadClientOverride)
+            return true;
 
         // If there's no ref then this is the first time we have drawn the UI
         if(!carouselRef.current) {
@@ -505,8 +512,8 @@ const MutateStateSetFileLoadedState = (state: CarouselState, fileLoadingState: F
     if(!overwrite) {
         const loadingStateForFile=state.loadingState.get(fileId)!;
 
-        if(loadingStateForFile.loadedSrc || loadingStateForFile.error) // No change
-            return state;
+        if(loadingStateForFile.src || loadingStateForFile.error)
+            return state; // Don't overwrite the state
     }
 
     const loadingCopy=new Map<number,FileLoadingState>();

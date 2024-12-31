@@ -93,7 +93,6 @@ export const ReplicateBMS = (): JSX.Element => {
                     getFileClass={(isLoading)=> isLoading ? "BMSFile loading" : "BMSFile"}
                     fileContainerClass={"BMSFileContainer"}
                     loadingFile={"Spinner-1s-300px.svg"}
-                    showChevrons={true}
                 />
             </div>
             <div style={{width: 100, height: 100, borderStyle: "solid", borderWidth: "1", margin: 5}}></div>
