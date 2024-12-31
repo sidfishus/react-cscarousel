@@ -11,13 +11,15 @@ export default defineConfig({
       entry: ["src/index.tsx"],
     },
     rollupOptions: {
-      external: ["react", "react-dom","react/jsx-runtime"],
+      external: ["react", "react-dom","react/jsx-runtime", "react-cslib", "@sidfishus/cslib"],
       output: {
         assetFileNames: "styles.css",
         globals: {
           react: "react",
           "react-dom": "react-dom",
           "react/jsx-runtime": "jsxRuntime",
+          "react-cslib": "reactCsLib",
+          "@sidfishus/cslib": "csLib"
         },
       },
     },

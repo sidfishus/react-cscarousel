@@ -1,0 +1,37 @@
+
+$HalfOrange: rgb(231,121,48,0.5);
+
+.StandardCarouselTest {
+  padding: 20px;
+  border: 1px solid #ccc;
+  margin: 20px;
+}
+
+.StandardFileClass {
+  border-radius: 5px;
+
+  border-style: solid;
+  border-color: red;
+  border-width: 6px;
+}
+
+.BMSFileContainer {
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-top: 1px;
+  padding-bottom: 1px;
+}
+
+.BMSFile {
+  object-fit: cover;
+  border-radius: 5px;
+  box-shadow: 0 0 0 1px $HalfOrange;
+
+  border-style: solid;
+  border-width: 1px;
+  border-color: white;
+}
+
+.BMSFile.loading {
+  object-fit: none;
+}

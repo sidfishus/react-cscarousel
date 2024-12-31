@@ -1,0 +1,121 @@
+
+
+
+$ChevronWidth: 40px;
+$ChevronMarginMobile: 20px;
+
+
+
+
+.GalleryThumbnailContainer {
+  justify-content: space-between;
+}
+
+.GalleryComponentImageDeleteIcon {
+  position: absolute;
+  //right: calc(5px + $stdControlBorderWidth);
+  right: 5px;
+  top: 5px;
+  width: 40px;
+  height: 40px;
+  //background-color: white;
+  //background-color: $primaryColor;
+  border-radius: 20px;
+  //background-color: green;
+  //background-color: red;
+  z-index: 2;
+}
+
+.GalleryComponentImageDeleteIcon:active {
+  opacity: 50%; //sidtodo improve
+}
+
+
+//////////////////////////////
+
+
+
+
+
+// #89cff0
+$primaryColor: rgb(137, 207, 240);
+$faintPrimaryColor: rgb(225, 243, 251);
+
+
+// This is a blend of feint primary color + primary color. at 60% effectively.
+$primaryColorHalfOpacity: rgb(181,225,246);
+// Primary colour at 40% opacity
+$primaryColorHalfOpacityWhiteBackground: rgb(220,241,251);
+
+$strongPrimaryColor: rgb(68, 103, 120); //#446778
+
+//https://meyerweb.com/eric/tools/color-blend/#E1F3FB:446778:9:rgbd
+// This is a blend of feint primary color + strong primary color. at 40% opacity effectively.
+//#a2bbc7
+$strongPrimaryColorHalfOpacity: rgb(162,187,199);
+
+// Strong primary at 40% opacity
+// Don't use this one - use $strongPrimaryColorHalfOpacity
+$strongPrimaryColorHalfOpacityWhiteBackground: rgb(180,194,201);
+
+$backgroundColor: white;
+
+$error: red;
+
+//sidtodo: why do we care about what background?
+$invalidInputWhiteBackground: $strongPrimaryColorHalfOpacity;
+$validInput: $primaryColor;
+
+$stdControlPadding: 10px;
+$stdFontSize: 16px;
+$stdControlHeight: 41px;
+$stdControlBorderWidth: 2px;
+$stdControlHeightMinusBorder: calc($stdControlHeight - ($stdControlBorderWidth * 2));
+$stdControlMarginH: 20px;
+$stdControlMarginV: calc($stdControlMarginH / 2);
+$focusedBorderColor: $primaryColor;
+
+$buttonBorderWidth: 1px;
+
+// This is shared with MENU_HEIGHT_IN_PX
+$MobileHeaderHeight: 50px;
+
+$MenuAnimationMs: 150ms;
+
+$ButtonHeight: 34px;
+
+
+
+
+
+.ImageContainer {
+  @extend .stdControl;
+  padding-left: 0px;
+  padding-right: 0px;
+
+  aspect-ratio: 1/1;
+  object-fit: cover;
+
+  display: block;
+}
+
+
+
+.stdControl {
+  padding-left: $stdControlPadding;
+  padding-right: $stdControlPadding;
+  border-radius: 12px;
+  background-color: $faintPrimaryColor;
+  border-width: $stdControlBorderWidth;
+  border-style: solid;
+  border-color: $backgroundColor;
+  outline: none;
+
+  // This is key for gaining for sizing elements. Without them, padding and font size changes
+  // the size of the element
+  width: 100%;
+}
+
+.stdControl:focus,.stdControl:active {
+  border-color: $focusedBorderColor;
+}

@@ -1,96 +1,98 @@
-import React from "react";
+import {MutableRefObject, useRef, useState} from "react";
+import {DispatchSetStateAction} from "react-cslib";
+import {DelayedFunction, ResettableTimer} from "@sidfishus/cslib";
 import "./carousel.scss";
-/*
-import {MutableRefObject, ReactNode, useRef, useState} from "react";
-import "../Styles/GalleryComponent.scss";
-import {DispatchSetStateAction} from "../Library/State";
-import {DelayedFunction, ResettableTimer} from "../Library/ResettableTimer";
-import WhiteChevronLeft from "../Images/white-chevron-left.svg";
-import WhiteChevronRight from "../Images/white-chevron-right.svg";
-import LoadingSvg from "../Images/Blocks-0.5s-88px.svg";
-import CrossStaticSvg from "../Images/cross.static.svg";
 
-export type SetSelectedImageFunc<IMAGE_T extends GalleryImage> = (idx: number, image: IMAGE_T) => void;
 
-export type OnDeleteImageFunc<IMAGE_T extends GalleryImage> = (idx: number, image: IMAGE_T) => void;
+//sidtodo remove these
+import WhiteChevronLeft from "../images-deleteafter/white-chevron-left.svg";
+import WhiteChevronRight from "../images-deleteafter/white-chevron-right.svg";
+import CrossStaticSvg from "../images-deleteafter/cross.static.svg";
 
-export type GalleryComponentSelectionProps = SelectionProps & {
-    coordsImageId: number|null;
-}
+//sidtodo check that scrolling through lots always loads the file. saw an example where this failed.
 
-export type GalleryComponentProps<IMAGE_T extends GalleryImage> = {
-    images: IMAGE_T[];
+export type SetSelectedFileFunc<FILE_T extends CarouselFileDetails> = (idx: number, file: FILE_T) => void;
+
+export type OnDeleteFileFunc<FILE_T extends CarouselFileDetails> = (idx: number, file: FILE_T) => void;
+
+export type CarouselProps<FILE_T extends CarouselFileDetails> = {
+    files: FILE_T[];
     selectedId: number;
-    setSelectedImage: SetSelectedImageFunc<IMAGE_T>;
-    imageDir?: string;
-    thumbnailDir?: string;
-    isStatic: boolean;
+    setSelectedFile: SetSelectedFileFunc<FILE_T>;
+    fileDir?: string;
+    thumbnailDir?: string; //sidtodo remove: replace with fileDir
     showThumbnails?: boolean|undefined;
     showChevrons?: boolean|undefined;
     autoChangeMs?: number;
     OnClick?: (()=>void|undefined);
-    loadImage: (url: string) => Promise<string>;
-    shouldLoad: boolean;
-    autoLoadLeftAndRightImages?: boolean;
-    onDelete?: OnDeleteImageFunc<IMAGE_T>;
-
-    selection?: GalleryComponentSelectionProps;
+    loadFileOverride?: (url: string) => Promise<string>; //sidtodo why does this return a string? comment..
+    shouldLoad: boolean; //sidtodo comment this
+    autoLoadLeftAndRightFiles?: boolean;
+    onDelete?: OnDeleteFileFunc<FILE_T>;
+    getFileClass?: (isLoading: boolean)=>string;
+    fileContainerClass?: string;
+    loadingFile: string;
 }
 
-export type GalleryImage = {
+//sidtodo change id from number to 64 bit???
+export type CarouselFileDetails = {
     src: string;
     id: number;
     allowDelete?: boolean;
+    overrideObjectFit?: "scale-down"|"cover"|"contain"|"fill"|"none";
 }
 
-type ImageLoadingState = {
+type FileLoadingState = {
     loadedSrc: string|null;
     error: boolean;
     isLoading: boolean;
 }
 
-type GalleryImageNonState = {
+type FileNonState = {
     loadingIdList: Set<number>;
     selectedId: number;
 }
 
-type GalleryState = {
-    loadingState: Map<number /* Image ID */,ImageLoadingState>;
+type CarouselState = {
+    loadingState: Map<number /* File ID */,FileLoadingState>;
 }
 
-export function GalleryComponent<IMAGE_T extends GalleryImage>(props: GalleryComponentProps<IMAGE_T>) {
+export function Carousel<FILE_T extends CarouselFileDetails>(props: CarouselProps<FILE_T>) {
 
     const { showChevrons, OnClick } = props;
 
-    const [imageState,SetImageState] = useState(() => CreateDefaultState(props));
+    const [fileState,SetFileState] = useState(() => CreateDefaultState(props));
 
-    const imageNonState=useRef<GalleryImageNonState>({
+    const fileNonState=useRef<FileNonState>({
         selectedId: props.selectedId,
         loadingIdList: new Set<number>()
     });
+
     // useRef's persist after a component has been removed from the DOM
-    if(imageNonState.current.selectedId !==props.selectedId) {
-        imageNonState.current.selectedId = props.selectedId;
+    if(fileNonState.current.selectedId !==props.selectedId) {
+        fileNonState.current.selectedId = props.selectedId;
     }
 
-    const delaySetSelectedImage=ResettableTimer();
+    const delaySetSelectedFile=ResettableTimer();
 
     // We need to be able to reference the carousel in various places
     const carouselRef=useRef<HTMLDivElement>(null) as MutableRefObject<HTMLDivElement>;
 
     console.log("Render carousel: ");
 
+    //sidtodo thumbnails
+
     const rv=(
         <>
-            <Carousel imageState={imageState} SetImageState={SetImageState}
-                      imageNonState={imageNonState} delaySetSelectedImage={delaySetSelectedImage}
+            <CarouselComponent fileState={fileState} SetFileState={SetFileState}
+                      fileNonState={fileNonState} delaySetSelectedFile={delaySetSelectedFile}
                       carouselRef={carouselRef}
                       showChevrons={showChevrons}
                       OnClick={OnClick} mainProps={props}
             />
 
             {/*{showThumbnails &&*/}
-            {/*    <Thumbnails {...props} imageState={imageState} SetImageState={SetImageState}*/}
+            {/*    <Thumbnails {...props} fileState={fileState} SetFileState={SetFileState}*/}
             {/*                carouselRef={carouselRef}*/}
             {/*    />}*/}
 
@@ -100,29 +102,16 @@ export function GalleryComponent<IMAGE_T extends GalleryImage>(props: GalleryCom
     return rv;
 }
 
-function GallerySelection<IMAGE_T extends GalleryImage>(
-    mainProps: GalleryComponentProps<IMAGE_T>): ReactNode|null {
-
-    const { selection } = mainProps;
-
-    const { xAsPercentage, yAsPercentage, drawFunc } = selection!;
-
-    if(!xAsPercentage || !yAsPercentage)
-        return null;
-
-    return drawFunc(xAsPercentage, yAsPercentage);
-}
-
-const CreateDefaultState = <IMAGE_T extends GalleryImage,> (props: GalleryComponentProps<IMAGE_T>): GalleryState => {
-    const { images } = props;
+const CreateDefaultState = <FILE_T extends CarouselFileDetails,> (props: CarouselProps<FILE_T>): CarouselState => {
+    const { files } = props;
 
     const rv={
-        loadingState: new Map<number,ImageLoadingState>()
+        loadingState: new Map<number,FileLoadingState>()
     }
 
-    images.forEach(iterImg => {
+    files.forEach(iterFile => {
 
-        rv.loadingState.set(iterImg.id,{
+        rv.loadingState.set(iterFile.id,{
             loadedSrc: null,
             error: false,
             isLoading: false
@@ -132,390 +121,397 @@ const CreateDefaultState = <IMAGE_T extends GalleryImage,> (props: GalleryCompon
     return rv;
 }
 
-type CarouselProps<IMAGE_T extends GalleryImage,> = {
-    mainProps: GalleryComponentProps<IMAGE_T>;
-    imageState: GalleryState;
-    SetImageState: DispatchSetStateAction<GalleryState>;
-    imageNonState: MutableRefObject<GalleryImageNonState>;
-    delaySetSelectedImage: DelayedFunction;
+type CarouselComponentProps<FILE_T extends CarouselFileDetails,> = {
+    mainProps: CarouselProps<FILE_T>;
+    fileState: CarouselState;
+    SetFileState: DispatchSetStateAction<CarouselState>;
+    fileNonState: MutableRefObject<FileNonState>;
+    delaySetSelectedFile: DelayedFunction;
     carouselRef: MutableRefObject<HTMLDivElement>;
     showChevrons?: boolean|undefined;
-    //sidtodo remove
+    //sidtodo remove??
     OnClick?: (()=>void|undefined);
 }
 
-function Carousel<IMAGE_T extends GalleryImage>(props: CarouselProps<IMAGE_T>) {
+function CarouselComponent<FILE_T extends CarouselFileDetails>(props: CarouselComponentProps<FILE_T>) {
 
-    const { imageState, SetImageState, imageNonState, delaySetSelectedImage, carouselRef,
+    const { fileState, SetFileState, fileNonState, delaySetSelectedFile, carouselRef,
         showChevrons, OnClick, mainProps } = props;
 
-    const { images } = mainProps;
+    const { files } = mainProps;
 
     const CarouselScroll =
-        ()=>OnCarouselScroll(mainProps,carouselRef, delaySetSelectedImage, imageNonState, imageState, images);
+        ()=>OnCarouselScroll(mainProps,carouselRef, delaySetSelectedFile, fileNonState, fileState, files);
 
     const ScrollLeft = () => {
-        ShowImage(mainProps, curIdx=> GetCarouselImageLeftIdx(curIdx, images), carouselRef,false, "smooth", imageNonState);
+        ShowFile(mainProps, curIdx=> GetCarouselFileLeftIdx(curIdx, files), carouselRef,false, "smooth", fileNonState);
     }
 
     const ScrollRight = () => {
-        ShowImage(mainProps, curIdx=> GetCarouselImageRightIdx(curIdx, images), carouselRef,false, "smooth", imageNonState);
+        ShowFile(mainProps, curIdx=> GetCarouselFileRightIdx(curIdx, files), carouselRef,false, "smooth", fileNonState);
     }
 
+    //sidtodo here: press left chevron, scroll completely to other end. then press left twice. it won't load.
     return (
         <>
-            <div style={{position: "relative"}}>
-                <div ref={carouselRef} className={"GalleryComponentContainer"}
-                     onScroll={CarouselScroll}>
+            <div ref={carouselRef} className={"CarouselContainer"}
+                 onScroll={CarouselScroll}>
 
-                    {images.map((iterImg,idx) => {
-                        return (
-                            <GalleryImageComponent idx={idx} state={imageState}
-                                                   SetState={SetImageState}
-                                                   key={idx} loadingNonState={imageNonState}
-                                                   carouselRef={carouselRef}
-                                                   OnClick={OnClick} mainProps={mainProps}
-                            />
-                        );
-                    })}
-                </div>
-
-                {showChevrons && images.length > 1 && <img src={WhiteChevronLeft}
-                                                           className={"GalleryComponentImageLeftChevron"}
-                                                           onClick={ScrollLeft}
-                />}
-
-                {showChevrons && images.length > 1 && <img src={WhiteChevronRight}
-                                                           className={"GalleryComponentImageRightChevron"}
-                                                           onClick={ScrollRight}
-                />}
+                {files.map((_,idx) => {
+                    return (
+                        <GalleryFileComponent idx={idx} state={fileState}
+                                               SetState={SetFileState}
+                                               key={idx} loadingNonState={fileNonState}
+                                               carouselRef={carouselRef}
+                                               OnClick={OnClick} mainProps={mainProps}
+                        />
+                    );
+                })}
             </div>
+
+            {showChevrons && files.length > 1 && <img src={WhiteChevronLeft}
+                                                       className={"CarouselLeftChevron"}
+                                                       onClick={ScrollLeft}
+            />}
+
+            {showChevrons && files.length > 1 && <img src={WhiteChevronRight}
+                                                       className={"CarouselRightChevron"}
+                                                       onClick={ScrollRight}
+            />}
         </>
     );
 }
 
-const GetCarouselImageLeftIdx = (idx: number, images: GalleryImage[]): number => {
-    return (idx === 0 ? images.length -1 : idx-1);
+const GetCarouselFileLeftIdx = (idx: number, files: CarouselFileDetails[]): number => {
+    return (idx === 0 ? files.length -1 : idx-1);
 }
 
-const GetCarouselImageRightIdx = (idx: number, images: GalleryImage[]): number => {
-    return (idx === (images.length -1) ? 0 : idx+1);
+const GetCarouselFileRightIdx = (idx: number, files: CarouselFileDetails[]): number => {
+    return (idx === (files.length -1) ? 0 : idx+1);
 }
 
-const OnCarouselScroll = <IMAGE_T extends GalleryImage,>(
-    mainProps: GalleryComponentProps<IMAGE_T>, ref: MutableRefObject<HTMLDivElement>,
-    delaySetSelectedImage: DelayedFunction,nonState: MutableRefObject<GalleryImageNonState>, imageState: GalleryState,
-    images: GalleryImage[]): void => {
+const OnCarouselScroll = <FILE_T extends CarouselFileDetails,>(
+    mainProps: CarouselProps<FILE_T>, ref: MutableRefObject<HTMLDivElement>,
+    delaySetSelectedFile: DelayedFunction, nonState: MutableRefObject<FileNonState>, fileState: CarouselState,
+    files: CarouselFileDetails[]): void => {
 
-    const imagesDisplayed=GetImagesDisplayed(ref, images);
-    let allImagesLoaded=true;
-    imagesDisplayed.forEach(iterIdx => {
+    const filesDisplayed=GetFilesDisplayed(ref, files);
+    let allFilesLoaded=true;
+    filesDisplayed.forEach(iterIdx => {
 
-        const imageId=images[iterIdx]!.id;
+        const fileId=files[iterIdx]!.id;
 
-        if(!imageState.loadingState.get(imageId)!.loadedSrc) {
-            allImagesLoaded=false;
+        if(!fileState.loadingState.get(fileId)!.loadedSrc) {
+            allFilesLoaded=false;
         }
     });
 
-    if(allImagesLoaded)
-        SetCurrentImage(mainProps,imagesDisplayed[0]!, nonState);
+    console.log("OnCarouselScroll allFilesLoaded=" + allFilesLoaded);
+
+    if(allFilesLoaded)
+        SetCurrentFile(mainProps,filesDisplayed[0]!, nonState);
     else {
-        // This is so we don't try to load lots of images whilst we're scrolling through them.
-        delaySetSelectedImage(() => {
-            SetCurrentImage(mainProps, GetCurrentImageIndex(ref), nonState);
+        // This is so we don't try to load lots of files whilst we're scrolling through them.
+        delaySetSelectedFile(() => {
+            SetCurrentFile(mainProps, GetCurrentFileIndex(ref), nonState);
         }, 200);
     }
 }
 
-const GetClientXInRelationToImageIndex = (x: number, imgIndex: number, carousel: HTMLDivElement) => {
+const GetClientXInRelationToFileIndex = (x: number, fileIndex: number, carousel: HTMLDivElement) => {
 
-    return (imgIndex*carousel.offsetWidth) + x;
+    return (fileIndex*carousel.offsetWidth) + x;
 }
 
-const SetCurrentImage = <IMAGE_T extends GalleryImage,>(
-    mainProps: GalleryComponentProps<IMAGE_T>, index: number,
-    nonState: MutableRefObject<GalleryImageNonState>): void => {
+const SetCurrentFile = <FILE_T extends CarouselFileDetails,>(
+    mainProps: CarouselProps<FILE_T>, index: number,
+    nonState: MutableRefObject<FileNonState>): void => {
 
-    const { setSelectedImage, images } = mainProps;
+    const { setSelectedFile, files } = mainProps;
 
-    const image=images[index]!;
+    const file=files[index]!;
 
-    if(image.id !== nonState.current.selectedId) {
+    if(file.id !== nonState.current.selectedId) {
 
-        nonState.current.selectedId=image.id;
-        setSelectedImage(index, image);
+        nonState.current.selectedId=file.id;
+        setSelectedFile(index, file);
     }
 }
 
-const ShowImage = <IMAGE_T extends GalleryImage,>(
-    mainProps: GalleryComponentProps<IMAGE_T>, getIdx: (idx: number)=>number,
+const ShowFile = <FILE_T extends CarouselFileDetails,>(
+    mainProps: CarouselProps<FILE_T>, getIdx: (idx: number)=>number,
     carouselRef: MutableRefObject<HTMLDivElement>, scrollVertical: boolean, scrollBehaviour: ScrollBehavior,
-    galleryImageNonState: MutableRefObject<GalleryImageNonState>) => {
+    galleryFileNonState: MutableRefObject<FileNonState>) => {
 
-    const { images } = mainProps;
+    const { files } = mainProps;
 
-    const currentIndex=images.findIndex(iterImage => iterImage.id === galleryImageNonState.current.selectedId);
+    const currentIndex=files.findIndex(iterFile => iterFile.id === galleryFileNonState.current.selectedId);
 
     const newIdx=getIdx(currentIndex);
 
     if(scrollVertical)
         window.scrollTo(0, 0);
 
-    const scrollX=GetClientXInRelationToImageIndex(0,newIdx,carouselRef.current);
+    const scrollX=GetClientXInRelationToFileIndex(0,newIdx,carouselRef.current);
     console.log("scroll x: " + scrollX + ", new Idx: " + newIdx + ", " + scrollBehaviour);
 
     carouselRef.current.scrollTo({
         left: scrollX,
         top: 0,
-        behavior: scrollBehaviour});
+        behavior: scrollBehaviour
+    });
 };
 
-const ImageIndexIsDisplayedOrNextToDisplayed = (carouselRef: MutableRefObject<HTMLDivElement>, images: GalleryImage[], idx: number): boolean => {
+const FileIndexIsDisplayedOrNextToDisplayed = (carouselRef: MutableRefObject<HTMLDivElement>,
+                                               files: CarouselFileDetails[], idx: number): boolean => {
 
-    if(images.length === 1)
+    if(files.length === 1)
         return true;
 
-    const displayedImages=GetImagesDisplayed(carouselRef,images);
+    const displayedFiles=GetFilesDisplayed(carouselRef,files);
 
-    const leftIdx=GetCarouselImageLeftIdx(idx,images);
+    const leftIdx=GetCarouselFileLeftIdx(idx,files);
 
-    const rightIdx=GetCarouselImageRightIdx(idx,images);
+    const rightIdx=GetCarouselFileRightIdx(idx,files);
 
-    if(displayedImages[0] === idx || displayedImages[0] === leftIdx || displayedImages[0] === rightIdx)
+    if(displayedFiles[0] === idx || displayedFiles[0] === leftIdx || displayedFiles[0] === rightIdx)
         return true;
 
-    if(displayedImages.length === 1)
+    if(displayedFiles.length === 1)
         return false;
 
-    return (displayedImages[1] === idx || displayedImages[1] === leftIdx || displayedImages[1] === rightIdx);
+    return (displayedFiles[1] === idx || displayedFiles[1] === leftIdx || displayedFiles[1] === rightIdx);
 }
 
-const ImageIndexIsDisplayed = (carouselRef: MutableRefObject<HTMLDivElement>, images: GalleryImage[], idx: number): boolean => {
+const FileIndexIsDisplayed = (
+    carouselRef: MutableRefObject<HTMLDivElement>, files: CarouselFileDetails[], idx: number): boolean => {
 
-    if(images.length === 1)
+    if(files.length === 1)
         return true;
 
-    const displayedImages=GetImagesDisplayed(carouselRef,images);
+    const displayedFiles=GetFilesDisplayed(carouselRef,files);
 
-    console.log(displayedImages);
+    console.log(displayedFiles);
 
-    if(displayedImages[0] === idx)
+    if(displayedFiles[0] === idx)
         return true;
 
-    return (displayedImages.length === 2 && displayedImages[1] === idx);
+    return (displayedFiles.length === 2 && displayedFiles[1] === idx);
 }
 
-const GetImagesDisplayed = (carouselRef: MutableRefObject<any>, images: GalleryImage[]): number[] => {
+const GetFilesDisplayed = (carouselRef: MutableRefObject<HTMLDivElement>, files: CarouselFileDetails[]): number[] => {
     const scrollX=carouselRef.current?.scrollLeft;
-    const imageWidth=carouselRef.current.offsetWidth;
+    const fileWidth=carouselRef.current.offsetWidth;
 
-    const currentIdxWithDecimal=scrollX/imageWidth;
+    const currentIdxWithDecimal=scrollX/fileWidth;
     const currentIdx=Math.round(currentIdxWithDecimal);
-    const percentageOfLessProminentImage=currentIdxWithDecimal-currentIdx;
+    const percentageOfLessProminentFile=currentIdxWithDecimal-currentIdx;
 
-    if(Math.abs(percentageOfLessProminentImage)<0.01) {
+    if(Math.abs(percentageOfLessProminentFile)<0.01) {
         return [currentIdx];
     }
 
-    if(percentageOfLessProminentImage<0) {
-        return [currentIdx, GetCarouselImageLeftIdx(currentIdx,images)];
+    if(percentageOfLessProminentFile<0) {
+        return [currentIdx, GetCarouselFileLeftIdx(currentIdx,files)];
     }
 
-    return [currentIdx, GetCarouselImageRightIdx(currentIdx,images)];
+    return [currentIdx, GetCarouselFileRightIdx(currentIdx,files)];
 }
 
-const GetCurrentImageIndex = (carouselRef: MutableRefObject<any>) => {
+const GetCurrentFileIndex = (carouselRef: MutableRefObject<HTMLDivElement>) => {
     const scrollX=carouselRef.current?.scrollLeft;
-    const imageWidth=carouselRef.current.offsetWidth;
+    const fileWidth=carouselRef.current.offsetWidth;
 
-    let currentIdx=Math.round(scrollX/imageWidth);
+    let currentIdx=Math.round(scrollX/fileWidth);
 
-    const diff=scrollX - (currentIdx * imageWidth);
-    if(diff > (imageWidth / 2)) {
+    const diff=scrollX - (currentIdx * fileWidth);
+    if(diff > (fileWidth / 2)) {
         currentIdx = currentIdx + 1;
     }
 
     return currentIdx;
 }
 
-const SetSelectedCoords = <IMAGE_T extends GalleryImage>(
-    e: React.MouseEvent<HTMLImageElement,MouseEvent>, mainProps: GalleryComponentProps<IMAGE_T>) => {
-
-    const { selection } = mainProps;
-
-    if(!selection)
-        return;
-
-    const { setSelectedCoords, clientPadding, clientLength } = selection!;
-
-    // Get the bounding rectangle of target
-    const target=e.target;
-    const boundingClientRect = target
-        //@ts-ignore
-        .getBoundingClientRect();
-
-    // Mouse position
-    let clientX = e.clientX - boundingClientRect.left;
-    let clientY = e.clientY - boundingClientRect.top;
-
-    const [xAsPercentage,yAsPercentage]=ConvertClientCoords(clientPadding,clientX, clientY,
-        boundingClientRect.width, boundingClientRect.height,clientLength);
-
-    setSelectedCoords(xAsPercentage,yAsPercentage);
-}
-
-type GalleryImageComponentProps<IMAGE_T extends GalleryImage> = {
-    mainProps: GalleryComponentProps<IMAGE_T>;
+type GalleryFileComponentProps<FILE_T extends CarouselFileDetails> = {
+    mainProps: CarouselProps<FILE_T>;
     idx: number;
-    state: GalleryState;
-    SetState: DispatchSetStateAction<GalleryState>;
-    loadingNonState: MutableRefObject<GalleryImageNonState>;
+    state: CarouselState;
+    SetState: DispatchSetStateAction<CarouselState>;
+    loadingNonState: MutableRefObject<FileNonState>;
     carouselRef: MutableRefObject<HTMLDivElement>;
     OnClick?: (()=>void|undefined);
 };
 
-function GalleryImageComponent<IMAGE_T extends GalleryImage>(props: GalleryImageComponentProps<IMAGE_T>) {
+//sidtodo make function smaller
+function GalleryFileComponent<FILE_T extends CarouselFileDetails>(props: GalleryFileComponentProps<FILE_T>) {
 
     const { idx, carouselRef, state, loadingNonState, SetState, mainProps } = props;
 
-    const { loadImage, shouldLoad, autoLoadLeftAndRightImages, images, selection } = mainProps;
+    const { loadFileOverride, shouldLoad, autoLoadLeftAndRightFiles, files, loadingFile } = mainProps;
 
     const { loadingState } = state;
 
-    const image=images[idx]!;
+    const file=files[idx]!;
 
-    const imageLoadingState = loadingState.get(image.id)!;
+    const fileLoadingState = loadingState.get(file.id)!;
 
-    if(imageLoadingState.loadedSrc) {
+    const fileContainerClass = mainProps.fileContainerClass
+        ? "CarouselFileContainer " + mainProps.fileContainerClass
+        : "CarouselFileContainer";
 
-        let onClick = undefined;
-        if (!imageLoadingState.error) {
-            if (image.id === mainProps.selectedId) {
-                onClick = (e: React.MouseEvent<HTMLImageElement, MouseEvent>) => SetSelectedCoords(e, mainProps);
-            }
-        }
+    const getFileClass = (isLoading: boolean) => mainProps.getFileClass
+        ? "CarouselFile " + mainProps.getFileClass(isLoading)
+        : "CarouselFile";
+
+    if(fileLoadingState.loadedSrc) {
+
+        console.log("SET STATE AND LOADED.......... " + fileLoadingState.loadedSrc);
 
         return (
-            <span className={"GalleryComponentSelectedCoordsImageContainer"}>
-                <img src={imageLoadingState.loadedSrc} className={"GalleryComponentImageContainer"} onClick={onClick} />
-                {!imageLoadingState.isLoading && selection?.coordsImageId === image.id && GallerySelection(mainProps)}
-                {image.allowDelete && <ImageDeleteButton mainProps={mainProps} idx={idx} />}
-            </span>
+            <div className={fileContainerClass}>
+                <img src={fileLoadingState.loadedSrc} className={getFileClass(false)} />
+                {file.allowDelete && <FileDeleteButton mainProps={mainProps} idx={idx} />}
+            </div>
         );
     }
 
-    if (!loadingNonState.current.loadingIdList.has(image.id) && shouldLoad
-        && (!imageLoadingState.loadedSrc || imageLoadingState.error)) {
+    if (!loadingNonState.current.loadingIdList.has(file.id) && shouldLoad
+        && (!fileLoadingState.loadedSrc || fileLoadingState.error)) {
 
-        if(ShouldLoadImage(carouselRef, autoLoadLeftAndRightImages, images, idx)) {
+        if(ShouldLoadFile(carouselRef, autoLoadLeftAndRightFiles, files, idx)) {
 
-            loadingNonState.current.loadingIdList.add(image.id);
+            console.log("should load file. idx=" + idx);
 
-            loadImage(ImageFullUrl(mainProps,image)).then((url: string) => {
-                loadingNonState.current.loadingIdList.delete(image.id);
-                SetState(curState => MutateStateSetImageLoadedState(curState, {
-                    loadedSrc: url,
-                    error: false,
-                    isLoading: false
-                }, image.id, true));
-            }).catch(() => {
-                loadingNonState.current.loadingIdList.delete(image.id);
+            if(loadFileOverride) {
+                loadingNonState.current.loadingIdList.add(file.id);
 
-                //sidtodo create a better icon on loading.io
-                SetState(curState => MutateStateSetImageLoadedState(curState, {
-                    loadedSrc: "/Images/fail-1.1s-200px.svg",
-                    error: true,
-                    isLoading: false
-                }, image.id, true));
-            });
+                loadFileOverride(FileFullUrl(mainProps, file.src)).then((url: string) => {
+                    loadingNonState.current.loadingIdList.delete(file.id);
+                    SetState(curState => MutateStateSetFileLoadedState(curState, {
+                        loadedSrc: url,
+                        error: false,
+                        isLoading: false
+                    }, file.id, true));
+                }).catch(() => {
+                    loadingNonState.current.loadingIdList.delete(file.id);
+
+                    //sidtodo create a better icon on loading.io
+                    SetState(curState => MutateStateSetFileLoadedState(curState, {
+                        loadedSrc: "/Files/fail-1.1s-200px.svg",
+                        error: true,
+                        isLoading: false
+                    }, file.id, true));
+                });
+            }
+            else {
+                const domFile=new Image();
+                domFile.src=FileFullUrl(mainProps,file.src);
+
+                loadingNonState.current.loadingIdList.add(idx);
+
+                domFile.onload = () => {
+                    console.log("LOASDED " + domFile.src);
+                    SetState(curState => MutateStateSetFileLoadedState(curState, {
+                        isLoading: false,
+                        loadedSrc: domFile.src,
+                        error: false,
+                    }, file.id, true));
+                }
+                domFile.onerror = (e) => {
+                    console.log("failed to load " + JSON.stringify(e));
+                    console.log("filename: " + domFile.src);
+                }
+            }
 
             // Don't show the loading icon until after 100ms
             if(!carouselRef.current && idx === 0) {
 
-                // Show the loading SVG if the image is not loaded in 100 ms
+                //sidtodo test this.
+                //sidtodo test similar ,but when scrolling to another image and image is already loaded / cached.
+
+                // Show the loading SVG if the file is not loaded in 100 ms
                 setTimeout(() => {
-                    SetState(curState =>MutateStateSetImageLoadedState(curState, {
-                        loadedSrc: LoadingSvg,
+                    SetState(curState =>MutateStateSetFileLoadedState(curState, {
+                        loadedSrc: loadingFile,
                         error: false,
                         isLoading: true
-                    }, image.id, false));
+                    }, file.id, false));
                 }, 100);
 
                 return (
-                    <span className={"GalleryComponentImageContainer GalleryComponentSelectedCoordsImageContainer"} />
+                    <div className={fileContainerClass} />
                 );
             }
         }
     }
 
     return (
-        <span className={"GalleryComponentSelectedCoordsImageContainer"}>
-            <img src={LoadingSvg} className={"GalleryComponentImageContainer"} />
-        </span>
-    );
-};
-
-type ImageDeleteButtonProps<IMAGE_T extends GalleryImage> = {
-    mainProps: GalleryComponentProps<IMAGE_T>;
-    idx: number;
-};
-
-function ImageDeleteButton<IMAGE_T extends GalleryImage>(props: ImageDeleteButtonProps<IMAGE_T>) {
-
-    const { mainProps,idx } = props;
-    const { images } = mainProps;
-
-    const onDelete = mainProps.onDelete
-        ? ()=>mainProps.onDelete!(idx, images[idx]!)
-        : undefined;
-
-    return (
-        <img className="GalleryComponentImageDeleteIcon" src={CrossStaticSvg} onClick={onDelete} />
+        <div className={fileContainerClass}>
+            <img src={FileFullUrl(mainProps,loadingFile)} className={getFileClass(true)} />
+        </div>
     );
 }
 
-const ShouldLoadImage =
-    (carouselRef: MutableRefObject<HTMLDivElement>, autoLoadLeftAndRightImages: boolean|undefined,
-     images: GalleryImage[], idx: number) => {
+type FileDeleteButtonProps<FILE_T extends CarouselFileDetails> = {
+    mainProps: CarouselProps<FILE_T>;
+    idx: number;
+};
+
+function FileDeleteButton<FILE_T extends CarouselFileDetails>(props: FileDeleteButtonProps<FILE_T>) {
+
+    const { mainProps,idx } = props;
+    const { files } = mainProps;
+
+    const onDelete = mainProps.onDelete
+        ? ()=>mainProps.onDelete!(idx, files[idx]!)
+        : undefined;
+
+    return (
+        <img className="GalleryComponentFileDeleteIcon" src={CrossStaticSvg} onClick={onDelete} />
+    );
+}
+
+const ShouldLoadFile =
+    (carouselRef: MutableRefObject<HTMLDivElement>, autoLoadLeftAndRightFiles: boolean|undefined,
+     files: CarouselFileDetails[], idx: number) => {
 
         // If there's no ref then this is the first time we have drawn the UI
         if(!carouselRef.current) {
-            if(!autoLoadLeftAndRightImages)
+            if(!autoLoadLeftAndRightFiles)
                 return idx === 0;
 
-            const leftIdx=GetCarouselImageLeftIdx(idx, images);
-            const rightIdx=GetCarouselImageRightIdx(idx, images);
+            const leftIdx=GetCarouselFileLeftIdx(idx, files);
+            const rightIdx=GetCarouselFileRightIdx(idx, files);
 
             return idx === 0 || leftIdx === 0 || rightIdx === 0;
         }
 
-        if(autoLoadLeftAndRightImages)
-            return ImageIndexIsDisplayedOrNextToDisplayed(carouselRef, images, idx);
+        if(autoLoadLeftAndRightFiles)
+            return FileIndexIsDisplayedOrNextToDisplayed(carouselRef, files, idx);
 
-        return ImageIndexIsDisplayed(carouselRef, images, idx);
+        return FileIndexIsDisplayed(carouselRef, files, idx);
     }
 
-const MutateStateSetImageLoadedState = (  state: GalleryState, imageLoadingState: ImageLoadingState, imageId: number
-    , overwrite: boolean): GalleryState => {
+const MutateStateSetFileLoadedState = (state: CarouselState, fileLoadingState: FileLoadingState, fileId: number
+    , overwrite: boolean): CarouselState => {
 
     if(!overwrite) {
-        const loadingStateForImage=state.loadingState.get(imageId)!;
+        const loadingStateForFile=state.loadingState.get(fileId)!;
 
-        if(loadingStateForImage.loadedSrc || loadingStateForImage.error) // No change
+        if(loadingStateForFile.loadedSrc || loadingStateForFile.error) // No change
             return state;
     }
 
-    const loadingCopy=new Map<number,ImageLoadingState>();
-    state.loadingState.forEach((iterLoadingState, iterImageId) => {
+    const loadingCopy=new Map<number,FileLoadingState>();
+    state.loadingState.forEach((iterLoadingState, iterFileId) => {
 
-        if(iterImageId !== imageId)
-            loadingCopy.set(iterImageId, iterLoadingState);
+        if(iterFileId !== fileId)
+            loadingCopy.set(iterFileId, iterLoadingState);
 
         else {
-            loadingCopy.set(iterImageId,{
+            loadingCopy.set(iterFileId,{
                 ...iterLoadingState,
-                ...imageLoadingState
+                ...fileLoadingState
             });
         }
     });
@@ -528,10 +524,10 @@ const MutateStateSetImageLoadedState = (  state: GalleryState, imageLoadingState
     return rv;
 }
 
-function ImageFullUrl<IMAGE_T extends GalleryImage>(props: GalleryComponentProps<IMAGE_T>, img: GalleryImage): string {
-    if(props.imageDir)
-        return props.imageDir + img.src;
+function FileFullUrl<FILE_T extends CarouselFileDetails>(
+    props: CarouselProps<FILE_T>, fileSrc: string): string {
+    if(props.fileDir)
+        return props.fileDir + fileSrc;
 
-    return img.src;
+    return fileSrc;
 }
-*/
