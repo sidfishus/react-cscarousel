@@ -63,11 +63,11 @@
 }
 
 .CarouselLeftChevron,.CarouselRightChevron {
-  width: 40px;
+  width: 50px;
   position: absolute;
   z-index: 5;
 
-  top: calc(50% - (40px / 2));
+  top: calc(50% - (50px / 2));
 }
 
 .CarouselLeftChevron {
@@ -76,4 +76,5 @@
 
 .CarouselRightChevron {
   right: 30px;
+  transform: rotate(-180deg);
 }

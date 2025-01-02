@@ -92,7 +92,8 @@ export const ReplicateBMS = (): JSX.Element => {
                     fileDir={"/src/images-deleteafter/bms/"}
                     getFileClass={(isLoading)=> isLoading ? "BMSFile loading" : "BMSFile"}
                     fileContainerClass={"BMSFileContainer"}
-                    loadingFile={"Spinner-1s-300px.svg"}
+                    loadingFileUrl={"Spinner-1s-300px.svg"}
+                    chevronUrl={"../white-chevron-left.svg"}
                 />
             </div>
             <div style={{width: 100, height: 100, borderStyle: "solid", borderWidth: "1", margin: 5}}></div>
