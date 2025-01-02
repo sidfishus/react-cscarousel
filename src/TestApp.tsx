@@ -83,7 +83,7 @@ export const ReplicateBMS = (): JSX.Element => {
 
     return (
         <>
-            <div style={{width: 620, height: 602}}>
+            <div className={"BMSCarouselContainer"}>
                 <Carousel
                     files={bmsImages}
                     selectedId={imageId}

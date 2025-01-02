@@ -37,7 +37,6 @@ export type CarouselFileDetails = {
     src: string;
     id: number;
     allowDelete?: boolean;
-    overrideObjectFit?: "scale-down"|"cover"|"contain"|"fill"|"none";
 }
 
 type FileLoadingState = {
@@ -150,6 +149,8 @@ function CarouselComponent<FILE_T extends CarouselFileDetails>(props: CarouselCo
     }
 
     const showChevrons = mainProps.showChevrons === undefined || mainProps.showChevrons;
+
+    console.log("render carousel");
 
     return (
         <>
@@ -339,7 +340,7 @@ type GalleryFileComponentProps<FILE_T extends CarouselFileDetails> = {
     OnClick?: (()=>void|undefined);
 };
 
-//sidtodo make function smaller
+//sidtodo this is initially moving to new tabs not smoothly.
 function GalleryFileComponent<FILE_T extends CarouselFileDetails>(props: GalleryFileComponentProps<FILE_T>) {
 
     const { idx, carouselRef, state, loadingNonState, SetState, mainProps } = props;
@@ -356,9 +357,20 @@ function GalleryFileComponent<FILE_T extends CarouselFileDetails>(props: Gallery
         ? "CarouselFileContainer " + mainProps.fileContainerClass
         : "CarouselFileContainer";
 
-    const getFileClass = (isLoading: boolean) => mainProps.getFileClass
-        ? "CarouselFile " + mainProps.getFileClass(isLoading)
-        : "CarouselFile";
+    const getFileClass = (isLoading: boolean) => {
+
+        const baseFileClass = isLoading
+            ? "CarouselFile loading"
+            : "CarouselFile";
+
+        return mainProps.getFileClass
+            ? baseFileClass + " " + mainProps.getFileClass(isLoading)
+            : baseFileClass;
+    }
+
+
+
+    console.log(FileFullUrl(mainProps,loadingFile));
 
     //console.log(JSON.stringify(file) + " loadingIdListHasFile?: " + loadingNonState.current.loadingIdList.has(file.id)
     //  + " " + JSON.stringify(fileLoadingState));
@@ -367,12 +379,28 @@ function GalleryFileComponent<FILE_T extends CarouselFileDetails>(props: Gallery
 
         return (
             <div className={fileContainerClass}>
-                <img src={fileLoadingState.src} className={getFileClass(fileLoadingState.isLoading)} />
+                <div className={getFileClass(fileLoadingState.isLoading)} style={{backgroundImage: `url('${fileLoadingState.src}')`}} />
                 {file.allowDelete && !fileLoadingState.error && !fileLoadingState.isLoading &&
                     <FileDeleteButton mainProps={mainProps} idx={idx} />
                 }
             </div>
         );
+
+        // return (
+        //     <div className={fileContainerClass}>
+        //         <div style={{
+        //             width: "100%",
+        //             height: "100%",
+        //             backgroundImage: `url('${fileLoadingState.src}')`,
+        //             backgroundSize: "cover",
+        //             backgroundPosition: "center center",
+        //             //backgroundColor: "red"
+        //         }}>
+        //         </div>
+        //     </div>
+        // );
+
+
     }
 
     const autoLoadLeftAndRightFiles =mainProps.autoLoadLeftAndRightFiles === undefined
@@ -382,83 +410,85 @@ function GalleryFileComponent<FILE_T extends CarouselFileDetails>(props: Gallery
     const loadFile=
         ShouldLoadFile(carouselRef, autoLoadLeftAndRightFiles, files, idx, loadingNonState.current, mainProps.shouldLoad);
 
-    if(!loadFile) {
-        // Show the loading SVG
-        return (
-            <div className={fileContainerClass}>
-                <img src={FileFullUrl(mainProps,loadingFile)} className={getFileClass(true)} />
-            </div>
-        );
-    }
+    if(loadFile) {
+        if (loadFileOverride) {
+            loadingNonState.current.loadingIdList.add(file.id);
 
-    if(loadFileOverride) {
-        loadingNonState.current.loadingIdList.add(file.id);
+            loadFileOverride(FileFullUrl(mainProps, file.src)).then((url: string) => {
+                loadingNonState.current.loadingIdList.delete(file.id);
+                SetState(curState => MutateStateSetFileLoadedState(curState, {
+                    src: url,
+                    error: false,
+                    isLoading: false
+                }, file.id, true));
+            }).catch(() => {
+                loadingNonState.current.loadingIdList.delete(file.id);
 
-        loadFileOverride(FileFullUrl(mainProps, file.src)).then((url: string) => {
-            loadingNonState.current.loadingIdList.delete(file.id);
-            SetState(curState => MutateStateSetFileLoadedState(curState, {
-                src: url,
-                error: false,
-                isLoading: false
-            }, file.id, true));
-        }).catch(() => {
-            loadingNonState.current.loadingIdList.delete(file.id);
+                //sidtodo create a better icon on loading.io
+                SetState(curState => MutateStateSetFileLoadedState(curState, {
+                    src: "/Files/fail-1.1s-200px.svg",
+                    error: true,
+                    isLoading: false
+                }, file.id, true));
+            });
+        } else {
+            const domFile = new Image();
+            domFile.src = FileFullUrl(mainProps, file.src);
 
-            //sidtodo create a better icon on loading.io
-            SetState(curState => MutateStateSetFileLoadedState(curState, {
-                src: "/Files/fail-1.1s-200px.svg",
-                error: true,
-                isLoading: false
-            }, file.id, true));
-        });
-    }
-    else {
-        const domFile=new Image();
-        domFile.src=FileFullUrl(mainProps,file.src);
+            loadingNonState.current.loadingIdList.add(file.id);
 
-        loadingNonState.current.loadingIdList.add(file.id);
+            domFile.onload = () => {
 
-        domFile.onload = () => {
+                console.log(loadingNonState.current.loadingIdList);
 
-            console.log(loadingNonState.current.loadingIdList);
-
-            loadingNonState.current.loadingIdList.delete(file.id);
-            //console.log("LOASDED " + domFile.src);
-            SetState(curState => MutateStateSetFileLoadedState(curState, {
-                isLoading: false,
-                src: domFile.src,
-                error: false,
-            }, file.id, true));
+                loadingNonState.current.loadingIdList.delete(file.id);
+                //console.log("LOASDED " + domFile.src);
+                SetState(curState => MutateStateSetFileLoadedState(curState, {
+                    isLoading: false,
+                    src: domFile.src,
+                    error: false,
+                }, file.id, true));
+            }
+            domFile.onerror = (e) => {
+                //sidtodo deal with errors.
+                loadingNonState.current.loadingIdList.delete(file.id);
+                console.log("failed to load " + JSON.stringify(e));
+                console.log("filename: " + domFile.src);
+            }
         }
-        domFile.onerror = (e) => {
-            //sidtodo deal with errors.
-            loadingNonState.current.loadingIdList.delete(file.id);
-            console.log("failed to load " + JSON.stringify(e));
-            console.log("filename: " + domFile.src);
+
+        const isFirstTimeLoad = !carouselRef.current;
+
+        if (isFirstTimeLoad) {
+
+            // Don't show the loading SVG until after 100ms
+            // If the images are cached, and the client has a reasonably fast internet connection, this stops
+            //  the flicker from quickly going from the loading SVG to the loaded image.
+            /*setTimeout(() => {
+                SetState(curState => MutateStateSetFileLoadedState(curState, {
+                    src: FileFullUrl(mainProps, loadingFile),
+                    error: false,
+                    isLoading: true
+                }, file.id, false));
+            }, 100);*/
+
+            //sidtodo this is making the spinner look larger??? object-fit??
+            // return (
+            //     <div className={fileContainerClass}>
+            //         <img src={FileFullUrl(mainProps,loadingFile)} className={getFileClass(true)} style={{display: "none"}} />
+            //     </div>
+            // );
         }
     }
 
-    const isFirstTimeLoad=!carouselRef.current;
-
-    if(isFirstTimeLoad) {
-
-        // Don't show the loading SVG until after 100ms
-        // If the images are cached, and the client has a reasonably fast internet connection, this stops
-        //  the flicker from quickly going from the loading SVG to the loaded image.
-        setTimeout(() => {
-            SetState(curState =>MutateStateSetFileLoadedState(curState, {
-                src: FileFullUrl(mainProps,loadingFile),
-                error: false,
-                isLoading: true
-            }, file.id, false));
-        }, 100);
-
-        return (
-            <div className={fileContainerClass}>
-                <div className={getFileClass(true)} />
+    return (
+        <div className={fileContainerClass}>
+            <div className={getFileClass(true)} style={{
+                backgroundImage: `url('${FileFullUrl(mainProps,loadingFile)}')`,
+            }}>
             </div>
-        );
-    }
+        </div>
+    );
 }
 
 type FileDeleteButtonProps<FILE_T extends CarouselFileDetails> = {

@@ -11,50 +11,50 @@
 
   overflow-y: hidden;
 
-  display: inline-block;
-
   scroll-snap-type: x mandatory;
 
   box-sizing: border-box;
 
-  cursor: move;
-
   width: 100%;
+
   height: 100%;
 }
 
 .CarouselFileContainer {
   display: inline-block;
 
-  //padding-left: 0px;
-  //padding-right: 0px;
-  //margin: 10px;
-
-
-
   scroll-snap-align: start;
 
   width: 100%;
-  min-width: 100%;
+  //min-width: 100%;
 
   height: 100%;
-  min-height: 100%;
+  //min-height: 100%;
 
   box-sizing: border-box;
+
+  // Very important: inline-block adds 4px to the bottom of the div, which this will remove.
+  margin-bottom: -4px;
 }
 
 .CarouselFile {
-  display: inline-block;
+  box-sizing: border-box;
 
   aspect-ratio: 1/1;
 
-  min-width: 100%;
   width: 100%;
+  min-width: 100%;
 
-  min-height: 100%;
   height: 100%;
+  min-height: 100%;
 
-  box-sizing: border-box;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center center;
+}
+
+.CarouselFile.loading {
+  background-size: unset;
 }
 
 //// Chevrons
