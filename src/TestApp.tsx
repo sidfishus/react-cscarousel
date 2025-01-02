@@ -6,7 +6,7 @@ import "./testapp.scss";
 const CreateGalleryImage = (url: string, id: number)=> {
     const x: CarouselFileDetails = {
         src: url,
-        id: id
+        id: BigInt(id)
     };
 
     return x;
@@ -77,7 +77,7 @@ export const Standard = (): JSX.Element => {
 
 export const ReplicateBMS = (): JSX.Element => {
 
-    const [imageId,setImageId]=useState<number>(2);
+    const [imageId,setImageId]=useState<bigint>(2n);
 
     const setGallerySelectedImage = (_: number, file: CarouselFileDetails) => setImageId(file.id);
 

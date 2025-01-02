@@ -15,7 +15,7 @@ export type OnDeleteFileFunc<FILE_T extends CarouselFileDetails> = (idx: number,
 
 export type CarouselProps<FILE_T extends CarouselFileDetails> = {
     files: FILE_T[];
-    selectedId: number;
+    selectedId: bigint;
     setSelectedFile: SetSelectedFileFunc<FILE_T>;
     fileDir?: string;
     thumbnailDir?: string; //sidtodo remove: replace with fileDir
@@ -32,10 +32,9 @@ export type CarouselProps<FILE_T extends CarouselFileDetails> = {
     loadingFile: string;
 }
 
-//sidtodo change id from number to 64 bit???
 export type CarouselFileDetails = {
     src: string;
-    id: number;
+    id: bigint;
     allowDelete?: boolean;
 }
 
@@ -46,12 +45,12 @@ type FileLoadingState = {
 }
 
 type FileNonState = {
-    loadingIdList: Set<number>;
-    selectedId: number;
+    loadingIdList: Set<bigint>;
+    selectedId: bigint;
 }
 
 type CarouselState = {
-    loadingState: Map<number /* File ID */,FileLoadingState>;
+    loadingState: Map<bigint /* File ID */,FileLoadingState>;
 }
 
 export function Carousel<FILE_T extends CarouselFileDetails>(props: CarouselProps<FILE_T>) {
@@ -62,7 +61,7 @@ export function Carousel<FILE_T extends CarouselFileDetails>(props: CarouselProp
 
     const fileNonState=useRef<FileNonState>({
         selectedId: props.selectedId,
-        loadingIdList: new Set<number>()
+        loadingIdList: new Set<bigint>()
     });
 
     // useRef's persist after a component has been removed from the DOM
@@ -103,7 +102,7 @@ const CreateDefaultState = <FILE_T extends CarouselFileDetails,> (props: Carouse
     const { files } = props;
 
     const rv={
-        loadingState: new Map<number,FileLoadingState>()
+        loadingState: new Map<bigint,FileLoadingState>()
     }
 
     files.forEach(iterFile => {
@@ -340,7 +339,7 @@ type GalleryFileComponentProps<FILE_T extends CarouselFileDetails> = {
     OnClick?: (()=>void|undefined);
 };
 
-//sidtodo this is initially moving to new tabs not smoothly.
+//sidtodo: when click the thumbnails, auto load the image at that position and the left and right images.
 function GalleryFileComponent<FILE_T extends CarouselFileDetails>(props: GalleryFileComponentProps<FILE_T>) {
 
     const { idx, carouselRef, state, loadingNonState, SetState, mainProps } = props;
@@ -368,15 +367,14 @@ function GalleryFileComponent<FILE_T extends CarouselFileDetails>(props: Gallery
             : baseFileClass;
     }
 
-
-
-    console.log(FileFullUrl(mainProps,loadingFile));
-
     //console.log(JSON.stringify(file) + " loadingIdListHasFile?: " + loadingNonState.current.loadingIdList.has(file.id)
     //  + " " + JSON.stringify(fileLoadingState));
 
+    // FYI: using a div with a background image (rathern than <img>) is to prevent an issue when using object-fit / contain.
+    // When initially loading you get a flicker where the width of the image is stretched (as per object-fit cover)
+    //  and then resizes to the original size.
+    // See https://stackoverflow.com/questions/64187659/react-js-image-size-flickers-on-reload-with-object-fit-cover-css-property
     if(fileLoadingState.src) {
-
         return (
             <div className={fileContainerClass}>
                 <div className={getFileClass(fileLoadingState.isLoading)} style={{backgroundImage: `url('${fileLoadingState.src}')`}} />
@@ -385,22 +383,6 @@ function GalleryFileComponent<FILE_T extends CarouselFileDetails>(props: Gallery
                 }
             </div>
         );
-
-        // return (
-        //     <div className={fileContainerClass}>
-        //         <div style={{
-        //             width: "100%",
-        //             height: "100%",
-        //             backgroundImage: `url('${fileLoadingState.src}')`,
-        //             backgroundSize: "cover",
-        //             backgroundPosition: "center center",
-        //             //backgroundColor: "red"
-        //         }}>
-        //         </div>
-        //     </div>
-        // );
-
-
     }
 
     const autoLoadLeftAndRightFiles =mainProps.autoLoadLeftAndRightFiles === undefined
@@ -442,7 +424,6 @@ function GalleryFileComponent<FILE_T extends CarouselFileDetails>(props: Gallery
                 console.log(loadingNonState.current.loadingIdList);
 
                 loadingNonState.current.loadingIdList.delete(file.id);
-                //console.log("LOASDED " + domFile.src);
                 SetState(curState => MutateStateSetFileLoadedState(curState, {
                     isLoading: false,
                     src: domFile.src,
@@ -461,23 +442,22 @@ function GalleryFileComponent<FILE_T extends CarouselFileDetails>(props: Gallery
 
         if (isFirstTimeLoad) {
 
-            // Don't show the loading SVG until after 100ms
+            // Don't show the loading SVG until after 200ms
             // If the images are cached, and the client has a reasonably fast internet connection, this stops
             //  the flicker from quickly going from the loading SVG to the loaded image.
-            /*setTimeout(() => {
+            setTimeout(() => {
                 SetState(curState => MutateStateSetFileLoadedState(curState, {
                     src: FileFullUrl(mainProps, loadingFile),
                     error: false,
                     isLoading: true
                 }, file.id, false));
-            }, 100);*/
+            }, 200);
 
-            //sidtodo this is making the spinner look larger??? object-fit??
-            // return (
-            //     <div className={fileContainerClass}>
-            //         <img src={FileFullUrl(mainProps,loadingFile)} className={getFileClass(true)} style={{display: "none"}} />
-            //     </div>
-            // );
+            return (
+                <div className={fileContainerClass}>
+                    <div className={getFileClass(true)}></div>
+                </div>
+            );
         }
     }
 
@@ -536,7 +516,7 @@ const ShouldLoadFile =
         return FileIndexIsDisplayed(carouselRef, files, idx);
     }
 
-const MutateStateSetFileLoadedState = (state: CarouselState, fileLoadingState: FileLoadingState, fileId: number
+const MutateStateSetFileLoadedState = (state: CarouselState, fileLoadingState: FileLoadingState, fileId: bigint
     , overwrite: boolean): CarouselState => {
 
     if(!overwrite) {
@@ -546,7 +526,7 @@ const MutateStateSetFileLoadedState = (state: CarouselState, fileLoadingState: F
             return state; // Don't overwrite the state
     }
 
-    const loadingCopy=new Map<number,FileLoadingState>();
+    const loadingCopy=new Map<bigint,FileLoadingState>();
     state.loadingState.forEach((iterLoadingState, iterFileId) => {
 
         if(iterFileId !== fileId)
