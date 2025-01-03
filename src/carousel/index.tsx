@@ -1,40 +1,31 @@
 import {MutableRefObject, useRef, useState} from "react";
 import {DispatchSetStateAction} from "react-cslib";
 import {DelayedFunction, ResettableTimer} from "@sidfishus/cslib";
-import "./carousel.scss";
-
-
-//sidtodo remove these
-import CrossStaticSvg from "../images-deleteafter/cross.static.svg";
+import "./index.scss";
 
 export type SetSelectedFileFunc<FILE_T extends CarouselFileDetails> = (idx: number, file: FILE_T) => void;
-
-export type OnDeleteFileFunc<FILE_T extends CarouselFileDetails> = (idx: number, file: FILE_T) => void;
 
 export type CarouselProps<FILE_T extends CarouselFileDetails> = {
     files: FILE_T[];
     selectedId: bigint;
     setSelectedFile: SetSelectedFileFunc<FILE_T>;
     fileDir?: string;
-    thumbnailDir?: string; //sidtodo remove: replace with fileDir
     showThumbnails?: boolean|undefined;
     autoChangeMs?: number;
-    OnClick?: (()=>void|undefined);
-    loadFileOverride?: (url: string) => Promise<string>; //sidtodo why does this return a string? comment..
+    loadFileOverride?: (url: string) => Promise<string>; // The return is used as the image source.
     shouldLoad: boolean; // Allows the client to override whether files should be loaded.
     autoLoadLeftAndRightFiles?: boolean; // Defaults to true if not specified
-    onDelete?: OnDeleteFileFunc<FILE_T>;
-    getFileClass?: (isLoading: boolean)=>string;
+    getAdditionalFileClass?: (isLoading: boolean)=>string;
     fileContainerClass?: string;
     loadingFileUrl: string;
     chevronUrl?: string;
-    chevronClass?: (isLeft: boolean) => string;
+    overrideLeftChevronClass?: string;
+    overrideRightChevronClass?: string;
 }
 
 export type CarouselFileDetails = {
     src: string;
     id: bigint;
-    allowDelete?: boolean;
 }
 
 type FileLoadingState = {
@@ -54,7 +45,7 @@ type CarouselState = {
 
 export function Carousel<FILE_T extends CarouselFileDetails>(props: CarouselProps<FILE_T>) {
 
-    const { chevronUrl, OnClick } = props;
+    const { files, chevronUrl } = props;
 
     const [fileState,SetFileState] = useState(() => CreateDefaultState(props));
 
@@ -75,25 +66,55 @@ export function Carousel<FILE_T extends CarouselFileDetails>(props: CarouselProp
 
     //console.log("Render carousel: ");
 
-    //sidtodo thumbnails
+    const CarouselScroll =
+        ()=>OnCarouselScroll(props,carouselRef, delaySetSelectedFile, fileNonState, fileState, files);
 
-    const rv=(
-        <>
-            <CarouselComponent fileState={fileState} SetFileState={SetFileState}
-                      fileNonState={fileNonState} delaySetSelectedFile={delaySetSelectedFile}
-                      carouselRef={carouselRef} chevronUrl={chevronUrl}
-                      OnClick={OnClick} mainProps={props}
-            />
+    const ScrollLeft = () => {
+        ShowFile(props, curIdx=> GetCarouselFileLeftIdx(curIdx, files), carouselRef,false, "smooth", fileNonState);
+    }
 
-            {/*{showThumbnails &&*/}
-            {/*    <Thumbnails {...props} fileState={fileState} SetFileState={SetFileState}*/}
-            {/*                carouselRef={carouselRef}*/}
-            {/*    />}*/}
+    const ScrollRight = () => {
+        ShowFile(props, curIdx=> GetCarouselFileRightIdx(curIdx, files), carouselRef,false, "smooth", fileNonState);
+    }
 
-        </>
+    const getChevronClass = props.overrideLeftChevronClass
+        ? (isLeft: boolean)=>
+            (isLeft ? props.overrideLeftChevronClass : props.overrideRightChevronClass)
+        : (isLeft: boolean)=> isLeft ? "CarouselChevronLeft" : "CarouselChevronRight";
+
+    const showChevrons = !!chevronUrl && files.length > 1;
+
+    console.log("render carousel");
+
+    return (
+        <div style={{position: "relative"}}>
+            <div ref={carouselRef} className={"CarouselContainer"}
+                 onScroll={CarouselScroll}>
+
+                {files.map((_,idx) => {
+                    return (
+                        <GalleryFileComponent
+                            idx={idx} state={fileState} SetState={SetFileState} key={idx}
+                            loadingNonState={fileNonState} carouselRef={carouselRef} mainProps={props}
+                        />
+                    );
+                })}
+            </div>
+
+            {showChevrons &&
+                <>
+                    <img src={FileFullUrl(props, chevronUrl)}
+                         className={getChevronClass(true)}
+                         onClick={ScrollLeft}
+                    />
+                    <img src={FileFullUrl(props, chevronUrl)}
+                         className={getChevronClass(false)}
+                         onClick={ScrollRight}
+                    />
+                </>
+            }
+        </div>
     );
-
-    return rv;
 }
 
 const CreateDefaultState = <FILE_T extends CarouselFileDetails,> (props: CarouselProps<FILE_T>): CarouselState => {
@@ -113,77 +134,6 @@ const CreateDefaultState = <FILE_T extends CarouselFileDetails,> (props: Carouse
     });
 
     return rv;
-}
-
-type CarouselComponentProps<FILE_T extends CarouselFileDetails,> = {
-    mainProps: CarouselProps<FILE_T>;
-    fileState: CarouselState;
-    SetFileState: DispatchSetStateAction<CarouselState>;
-    fileNonState: MutableRefObject<FileNonState>;
-    delaySetSelectedFile: DelayedFunction;
-    carouselRef: MutableRefObject<HTMLDivElement>;
-    chevronUrl?: string;
-    //sidtodo remove??
-    OnClick?: (()=>void|undefined);
-}
-
-function CarouselComponent<FILE_T extends CarouselFileDetails>(props: CarouselComponentProps<FILE_T>) {
-
-    const { fileState, SetFileState, fileNonState, delaySetSelectedFile, carouselRef,
-        OnClick, mainProps, chevronUrl } = props;
-
-    const { files } = mainProps;
-
-    const CarouselScroll =
-        ()=>OnCarouselScroll(mainProps,carouselRef, delaySetSelectedFile, fileNonState, fileState, files);
-
-    const ScrollLeft = () => {
-        ShowFile(mainProps, curIdx=> GetCarouselFileLeftIdx(curIdx, files), carouselRef,false, "smooth", fileNonState);
-    }
-
-    const ScrollRight = () => {
-        ShowFile(mainProps, curIdx=> GetCarouselFileRightIdx(curIdx, files), carouselRef,false, "smooth", fileNonState);
-    }
-
-    //sidtodo here.
-    // const getChevronClass = mainProps.chevronClass
-    //     ? (isLeft: boolean)=> isLeft ?
-
-    const showChevrons = !!chevronUrl;
-
-    console.log("render carousel");
-
-    return (
-        <>
-            <div style={{position: "relative"}}>
-                <div ref={carouselRef} className={"CarouselContainer"}
-                     onScroll={CarouselScroll}>
-
-                    {files.map((_,idx) => {
-                        return (
-                            <GalleryFileComponent idx={idx} state={fileState}
-                                                   SetState={SetFileState}
-                                                   key={idx} loadingNonState={fileNonState}
-                                                   carouselRef={carouselRef}
-                                                   OnClick={OnClick} mainProps={mainProps}
-                            />
-                        );
-                    })}
-                </div>
-
-                {showChevrons && files.length > 1 && <img src={FileFullUrl(mainProps,chevronUrl)}
-                                                          className={"CarouselLeftChevron"}
-                                                          onClick={ScrollLeft}
-                                                          color={"red"}
-                />}
-
-                {showChevrons && files.length > 1 && <img src={FileFullUrl(mainProps,chevronUrl)}
-                                                          className={"CarouselRightChevron"}
-                                                          onClick={ScrollRight}
-                />}
-            </div>
-        </>
-    );
 }
 
 const GetCarouselFileLeftIdx = (idx: number, files: CarouselFileDetails[]): number => {
@@ -210,7 +160,7 @@ const OnCarouselScroll = <FILE_T extends CarouselFileDetails,>(
         }
     });
 
-    console.log("OnCarouselScroll allFilesLoaded=" + allFilesLoaded);
+    //console.log("OnCarouselScroll allFilesLoaded=" + allFilesLoaded);
 
     if(allFilesLoaded)
         SetCurrentFile(mainProps,filesDisplayed[0]!, nonState);
@@ -341,7 +291,6 @@ type GalleryFileComponentProps<FILE_T extends CarouselFileDetails> = {
     SetState: DispatchSetStateAction<CarouselState>;
     loadingNonState: MutableRefObject<FileNonState>;
     carouselRef: MutableRefObject<HTMLDivElement>;
-    OnClick?: (()=>void|undefined);
 };
 
 //sidtodo: when click the thumbnails, auto load the image at that position and the left and right images.
@@ -364,18 +313,18 @@ function GalleryFileComponent<FILE_T extends CarouselFileDetails>(props: Gallery
     const getFileClass = (isLoading: boolean) => {
 
         const baseFileClass = isLoading
-            ? "CarouselFile loading"
+            ? "CarouselFileLoading"
             : "CarouselFile";
 
-        return mainProps.getFileClass
-            ? baseFileClass + " " + mainProps.getFileClass(isLoading)
+        return mainProps.getAdditionalFileClass
+            ? baseFileClass + " " + mainProps.getAdditionalFileClass(isLoading)
             : baseFileClass;
     }
 
     //console.log(JSON.stringify(file) + " loadingIdListHasFile?: " + loadingNonState.current.loadingIdList.has(file.id)
     //  + " " + JSON.stringify(fileLoadingState));
 
-    // FYI: using a div with a background image (rathern than <img>) is to prevent an issue when using object-fit / contain.
+    // FYI: using a div with a background image (rather than <img>) is to prevent an issue when using object-fit / contain.
     // When initially loading you get a flicker where the width of the image is stretched (as per object-fit cover)
     //  and then resizes to the original size.
     // See https://stackoverflow.com/questions/64187659/react-js-image-size-flickers-on-reload-with-object-fit-cover-css-property
@@ -383,9 +332,6 @@ function GalleryFileComponent<FILE_T extends CarouselFileDetails>(props: Gallery
         return (
             <div className={fileContainerClass}>
                 <div className={getFileClass(fileLoadingState.isLoading)} style={{backgroundImage: `url('${fileLoadingState.src}')`}} />
-                {file.allowDelete && !fileLoadingState.error && !fileLoadingState.isLoading &&
-                    <FileDeleteButton mainProps={mainProps} idx={idx} />
-                }
             </div>
         );
     }
@@ -473,25 +419,6 @@ function GalleryFileComponent<FILE_T extends CarouselFileDetails>(props: Gallery
             }}>
             </div>
         </div>
-    );
-}
-
-type FileDeleteButtonProps<FILE_T extends CarouselFileDetails> = {
-    mainProps: CarouselProps<FILE_T>;
-    idx: number;
-};
-
-function FileDeleteButton<FILE_T extends CarouselFileDetails>(props: FileDeleteButtonProps<FILE_T>) {
-
-    const { mainProps,idx } = props;
-    const { files } = mainProps;
-
-    const onDelete = mainProps.onDelete
-        ? ()=>mainProps.onDelete!(idx, files[idx]!)
-        : undefined;
-
-    return (
-        <img className="GalleryComponentFileDeleteIcon" src={CrossStaticSvg} onClick={onDelete} />
     );
 }
 

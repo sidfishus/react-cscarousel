@@ -37,7 +37,7 @@
   margin-bottom: -4px;
 }
 
-.CarouselFile {
+.CarouselFile,.CarouselFileLoading {
   box-sizing: border-box;
 
   aspect-ratio: 1/1;
@@ -48,21 +48,20 @@
   height: 100%;
   min-height: 100%;
 
-  background-size: contain;
   background-repeat: no-repeat;
   background-position: center center;
 }
 
-.CarouselFile.loading {
+.CarouselFile {
+  background-size: contain;
+}
+
+.CarouselFileLoading {
   background-size: unset;
 }
 
 //// Chevrons
-.CarouselLeftChevron:active,.CarouselRightChevron:active {
-  opacity: 50%; //sidtodo improve
-}
-
-.CarouselLeftChevron,.CarouselRightChevron {
+.CarouselChevronLeft,.CarouselChevronRight {
   width: 50px;
   position: absolute;
   z-index: 5;
@@ -70,11 +69,15 @@
   top: calc(50% - (50px / 2));
 }
 
-.CarouselLeftChevron {
+.CarouselChevronLeft {
   left: 30px;
 }
 
-.CarouselRightChevron {
+.CarouselChevronRight {
   right: 30px;
   transform: rotate(-180deg);
+}
+
+.CarouselChevronLeft:active,.CarouselChevronRight:active {
+  opacity: 25%;
 }

@@ -11,25 +11,6 @@ $ChevronMarginMobile: 20px;
   justify-content: space-between;
 }
 
-.GalleryComponentImageDeleteIcon {
-  position: absolute;
-  //right: calc(5px + $stdControlBorderWidth);
-  right: 5px;
-  top: 5px;
-  width: 40px;
-  height: 40px;
-  //background-color: white;
-  //background-color: $primaryColor;
-  border-radius: 20px;
-  //background-color: green;
-  //background-color: red;
-  z-index: 2;
-}
-
-.GalleryComponentImageDeleteIcon:active {
-  opacity: 50%; //sidtodo improve
-}
-
 
 //////////////////////////////
 

@@ -15,10 +15,6 @@ $HalfOrange: rgb(231,121,48,0.5);
   border-width: 6px;
 }
 
-.BMSCarouselContainer {
-  width: 620px;
-}
-
 .BMSFileContainer {
   padding-left: 10px;
   padding-right: 10px;
@@ -26,7 +22,7 @@ $HalfOrange: rgb(231,121,48,0.5);
   padding-bottom: 1px;
 }
 
-.BMSFile {
+.BMSFile,.BMSFileLoading {
   border-radius: 5px;
   box-shadow: 0 0 0 1px $HalfOrange;
 
@@ -34,3 +30,26 @@ $HalfOrange: rgb(231,121,48,0.5);
   border-width: 1px;
   border-color: white;
 }
+
+.BMSFileLeftChevron,.BMSFileRightChevron {
+  width: 100px;
+  position: absolute;
+  z-index: 5;
+
+  top: calc(50% - (100px / 2));
+}
+
+.BMSFileLeftChevron {
+  left: 30px;
+}
+
+.BMSFileRightChevron {
+  right: 30px;
+  transform: rotate(-180deg);
+}
+
+.BMSFileLeftChevron:active,.BMSFileRightChevron:active {
+  opacity: 25%;
+}
+
+//////////

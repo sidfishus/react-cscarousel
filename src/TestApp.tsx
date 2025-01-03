@@ -2,6 +2,7 @@
 import {Carousel as Carousel, CarouselFileDetails} from "./carousel/index.tsx";
 import {useState} from "react";
 import "./testapp.scss";
+import {FileGrid} from "./file-grid";
 
 const CreateGalleryImage = (url: string, id: number)=> {
     const x: CarouselFileDetails = {
@@ -25,8 +26,6 @@ const bmsImages=[CreateGalleryImage("main/IMG_3005.jpg",2),
     CreateGalleryImage("main/IMG_1478.jpg",10),
     CreateGalleryImage("main/IMG_2116.jpg",11)
 ];
-
-//const bmsImages=[CreateGalleryImage("IMG_3005.jpg",2)];
 
 export const TestApp = (): JSX.Element => {
 
@@ -81,23 +80,39 @@ export const ReplicateBMS = (): JSX.Element => {
 
     const setGallerySelectedImage = (_: number, file: CarouselFileDetails) => setImageId(file.id);
 
+    const thumbnails=bmsImages.map(image => image.src);
+
+    //sidtodo how can this work with %?
     return (
-        <>
-            <div className={"BMSCarouselContainer"}>
+        <div style={{width: "calc(100% - 20px)", margin: "auto"}}>
+
+            <div style={{width: "620px", margin: "auto"}}>
                 <Carousel
                     files={bmsImages}
                     selectedId={imageId}
                     setSelectedFile={setGallerySelectedImage}
                     shouldLoad={true}
                     fileDir={"/src/images-deleteafter/bms/"}
-                    getFileClass={(isLoading)=> isLoading ? "BMSFile loading" : "BMSFile"}
+                    getAdditionalFileClass={(isLoading)=> isLoading ? "BMSFileLoading" : "BMSFile"}
                     fileContainerClass={"BMSFileContainer"}
                     loadingFileUrl={"Spinner-1s-300px.svg"}
                     chevronUrl={"../white-chevron-left.svg"}
+                    //overrideLeftChevronClass={"BMSFileLeftChevron"}
+                    //overrideRightChevronClass={"BMSFileRightChevron"}
                 />
             </div>
-            <div style={{width: 100, height: 100, borderStyle: "solid", borderWidth: "1", margin: 5}}></div>
-        </>
+
+            <br />
+
+            <div style={{width: "100%"}}>
+                <FileGrid
+                    fileDir={"/src/images-deleteafter/bms/"}
+                    files={thumbnails}
+                />
+            </div>
+
+            {/*<div style={{width: 100, height: 100, borderStyle: "solid", borderWidth: "1", margin: 5}}></div>*/}
+        </div>
     );
 }
 
