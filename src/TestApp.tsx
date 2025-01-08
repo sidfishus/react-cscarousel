@@ -1,8 +1,8 @@
 
-import {Carousel as Carousel, CarouselFileDetails} from "./carousel/index.tsx";
-import {useState} from "react";
+import {Carousel as Carousel, CarouselFileDetails, ShowFileFromIndex} from "./carousel/index.tsx";
+import {useRef, useState} from "react";
 import "./testapp.scss";
-import {FileGrid} from "./file-grid";
+import {FileGrid} from "react-csfilegrid";
 
 const CreateGalleryImage = (url: string, id: number)=> {
     const x: CarouselFileDetails = {
@@ -24,65 +24,72 @@ const bmsImages=[CreateGalleryImage("main/IMG_3005.jpg",2),
     CreateGalleryImage("main/IMG_1397.jpg",8),
     CreateGalleryImage("main/IMG_1402.jpg",9),
     CreateGalleryImage("main/IMG_1478.jpg",10),
-    CreateGalleryImage("main/IMG_2116.jpg",11)
+    CreateGalleryImage("main/IMG_2116.jpg",11),
 ];
 
-export const TestApp = (): JSX.Element => {
-
-    const [showMultiple,SetShowMultiple] = useState<boolean>(false);
+export const TestApp = () => {
 
     return (
         <>
-            Show Multiple?
-            <input type={"checkbox"} onChange={()=>SetShowMultiple(prevState => !prevState)} checked={showMultiple} />
-
+            <ReplicatePortfolioInMobile />
             <ReplicateBMS />
-
-            {showMultiple &&
-                <>
-                    <Standard key={1} />
-
-                    <Standard1000x1000Fill key={2} />
-
-                    <Standard1000x1000FillImageOverride key={3} />
-                </>
-            }
         </>
     );
 }
 
-export const Standard = (): JSX.Element => {
+export const ReplicatePortfolioInMobile = () => {
 
-    const [imageId,setImageId]=useState<number>(2);
+    const [imageId,setImageId]=useState<bigint|null>(null);
 
     const setGallerySelectedImage = (_: number, file: CarouselFileDetails) => setImageId(file.id);
 
+    const thumbnails=sharedImages.map(image => image.src);
+
+    const carouselRef=useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
+
     return (
-        <>
-            <div style={{width: 800, height: 800}} className={"StandardCarouselTest"}>
-                <Carousel
-                    files={sharedImages}
-                    selectedId={imageId}
-                    setSelectedFile={setGallerySelectedImage}
-                    shouldLoad={true}
-                    fileDir={"/src/images-deleteafter/"}
-                    fileClass={"StandardFileClass"}
-                />
-            </div>
-            <div style={{width: 100, height: 100, borderStyle: "solid", borderWidth: "1"}}></div>
-        </>
+        <div style={{minWidth: "calc(100%)"}}>
+            <Carousel
+                files={sharedImages}
+                selectedId={imageId}
+                setSelectedFile={setGallerySelectedImage}
+                shouldLoad={true}
+                fileDir={"/src/images/"}
+                additionalFileClass={(isLoading)=> isLoading ? "BMSFileLoading" : "BMSFile"}
+                additionalFileContainerClass={"BMSFileContainer"}
+                loadingFileUrl={"Spinner-1s-300px.svg"}
+                chevronUrl={"orange-chevron-left.svg"}
+                ref={carouselRef}
+                overrideLeftChevronClass={"PortfolioLeftChevron"}
+                overrideRightChevronClass={"PortfolioRightChevron"}
+            />
+
+            <br />
+
+            <FileGrid
+                fileDir={"/src/images/"}
+                files={thumbnails}
+                selectedIndex={(imageId === null ? 0 : bmsImages.findIndex(img => img.id === imageId))}
+                onClick={idx => ShowFileFromIndex(carouselRef.current,idx,"smooth")}
+                overrideFileClass={(isSelected)=>
+                    (isSelected ? "PortfolioFileGridSelectedFile" : "PortfolioFileGridFile")}
+            />
+
+        </div>
     );
+
 }
 
-export const ReplicateBMS = (): JSX.Element => {
+export const ReplicateBMS = () => {
 
-    const [imageId,setImageId]=useState<bigint>(2n);
+    const [imageId,setImageId]=useState<bigint|null>(null);
 
     const setGallerySelectedImage = (_: number, file: CarouselFileDetails) => setImageId(file.id);
 
     const thumbnails=bmsImages.map(image => image.src);
 
-    //sidtodo how can this work with %?
+    const carouselRef=useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
+
     return (
         <div style={{width: "calc(100% - 20px)", margin: "auto"}}>
 
@@ -92,13 +99,15 @@ export const ReplicateBMS = (): JSX.Element => {
                     selectedId={imageId}
                     setSelectedFile={setGallerySelectedImage}
                     shouldLoad={true}
-                    fileDir={"/src/images-deleteafter/bms/"}
-                    getAdditionalFileClass={(isLoading)=> isLoading ? "BMSFileLoading" : "BMSFile"}
-                    fileContainerClass={"BMSFileContainer"}
+                    fileDir={"/src/images/bms/"}
+                    additionalFileClass={(isLoading)=> isLoading ? "BMSFileLoading" : "BMSFile"}
+                    additionalFileContainerClass={"BMSFileContainer"}
                     loadingFileUrl={"Spinner-1s-300px.svg"}
-                    chevronUrl={"../white-chevron-left.svg"}
-                    //overrideLeftChevronClass={"BMSFileLeftChevron"}
-                    //overrideRightChevronClass={"BMSFileRightChevron"}
+                    chevronUrl={"../orange-chevron-left.svg"}
+                    ref={carouselRef}
+                    autoChangeMs={10000}
+                    overrideLeftChevronClass={"BMSFileLeftChevron"}
+                    overrideRightChevronClass={"BMSFileRightChevron"}
                 />
             </div>
 
@@ -106,57 +115,14 @@ export const ReplicateBMS = (): JSX.Element => {
 
             <div style={{width: "100%"}}>
                 <FileGrid
-                    fileDir={"/src/images-deleteafter/bms/"}
+                    fileDir={"/src/images/bms/"}
                     files={thumbnails}
+                    selectedIndex={(imageId === null ? 0 : bmsImages.findIndex(img => img.id === imageId))}
+                    onClick={idx => ShowFileFromIndex(carouselRef.current,idx,"smooth")}
                 />
             </div>
 
-            {/*<div style={{width: 100, height: 100, borderStyle: "solid", borderWidth: "1", margin: 5}}></div>*/}
         </div>
     );
-}
 
-//sidtodo make a standard and allow override rather than copy and paste everywhere
-export const Standard1000x1000Fill = (): JSX.Element => {
-
-    const [imageId,setImageId]=useState<number>(1);
-
-    const setGallerySelectedImage = (_: number, file: CarouselFileDetails) => setImageId(file.id);
-
-    return (
-        <div style={{width: 1000, height: 1000}} className={"StandardCarouselTest"}>
-            <Carousel
-                files={sharedImages}
-                selectedId={imageId}
-                setSelectedFile={setGallerySelectedImage}
-                shouldLoad={true}
-                fileDir={"/src/images-deleteafter/"}
-                defaultObjectFit={"fill"}
-            />
-        </div>
-    );
-}
-
-export const Standard1000x1000FillImageOverride = (): JSX.Element => {
-
-    const [imageId,setImageId]=useState<number>(1);
-
-    const setGallerySelectedImage = (_: number, file: CarouselFileDetails) => setImageId(file.id);
-
-
-    const images=[...sharedImages];
-    images[0]=CreateGalleryImage(images[0].src, images[0].id);
-    images[0].overrideObjectFit="fill"
-
-    return (
-        <div style={{width: 1000, height: 1000}} className={"StandardCarouselTest"}>
-            <Carousel
-                files={images}
-                selectedId={imageId}
-                setSelectedFile={setGallerySelectedImage}
-                shouldLoad={true}
-                fileDir={"/src/images-deleteafter/"}
-            />
-        </div>
-    );
 }
