@@ -5,6 +5,7 @@ A re-usable responsive React carousel component.
 - Lazy loading: Files are lazy loaded to make the component more responsive, and avoid downloading files which are not displayed.
 - File order: Files are displayed in the order they are presented in the **files** array prop. This means that the file at index 0 is the first displayed file in the carousel.
 - Thumbnails: If used alongside a list of thumbnails, it is recommended that the thumbnail images are created separately and with a reduced size. Otherwise this will default the lazy loading aspect of the carousel.
+- Styles: Don't forget to import "react-cscarousel/dist/styles.scss" otherwise the styling won't work!
 
 # Exported Functions
 - **ShowFileFromIndex**: Programatically scroll the carousel to the file at the specified index.
@@ -33,3 +34,82 @@ npm install react-cscarousel react-cslib @sidfishus/cslib
 - **overrideLeftChevronClass?**: *string*: Override the class of the left chevron.
 - **overrideRightChevronClass?**: *string*: Override the class of the right chevron.
 - **ref**: *RefObject<HTMLDivElement>*: The ref of the carousel div (instanciated via React.useRef).
+
+# Example
+
+Index.tsx
+```
+<div style={{width: "calc(100% - 20px)", margin: "auto"}}>
+
+    <div style={{width: "620px", margin: "auto"}}>
+        <Carousel
+            files={bmsImages}
+            selectedId={imageId}
+            setSelectedFile={setGallerySelectedImage}
+            shouldLoad={true}
+            fileDir={"/src/images/bms/"}
+            additionalFileClass={(isLoading)=> isLoading ? "BMSFileLoading" : "BMSFile"}
+            additionalFileContainerClass={"BMSFileContainer"}
+            loadingFileUrl={"Spinner-1s-300px.svg"}
+            chevronUrl={"../orange-chevron-left.svg"}
+            ref={carouselRef}
+            autoChangeMs={10000}
+            overrideLeftChevronClass={"BMSFileLeftChevron"}
+            overrideRightChevronClass={"BMSFileRightChevron"}
+        />
+    </div>
+
+    <br />
+
+    <FileGrid
+        fileDir={"/src/images/bms/"}
+        files={thumbnails}
+        selectedIndex={(imageId === null ? 0 : bmsImages.findIndex(img => img.id === imageId))}
+        onClick={idx => ShowFileFromIndex(carouselRef.current,idx,"smooth")}
+    />
+
+</div>
+```
+
+Index.scss
+```
+.BMSFileContainer {
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
+.BMSFile,.BMSFileLoading {
+  border-radius: 5px;
+
+  border: white solid 1.5px;
+  box-shadow: 0 0 0 1px black;
+}
+
+.BMSFileLeftChevron,.BMSFileRightChevron {
+  width: 100px;
+  position: absolute;
+  z-index: 5;
+
+  top: calc(50% - (100px / 2));
+
+  cursor: pointer;
+}
+
+.BMSFileLeftChevron {
+  left: 30px;
+}
+
+.BMSFileRightChevron {
+  right: 30px;
+  transform: rotate(-180deg);
+}
+
+.BMSFileLeftChevron:active,.BMSFileRightChevron:active {
+  opacity: 25%;
+}
+```
+
+Produces
+![Carousel with thumbnails](https://github.com/sidfishus/react-cscarousel/blob/main/carousel-example.png)
