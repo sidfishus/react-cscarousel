@@ -36,6 +36,7 @@ npm install react-cscarousel react-cslib @sidfishus/cslib
 - **ref**: *RefObject<HTMLDivElement>*: The ref of the carousel div (instanciated via React.useRef).
 
 # Example
+See https://github.com/sidfishus/react-cscarousel/blob/main/src/TestApp.tsx.
 
 Index.tsx
 ```
