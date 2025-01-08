@@ -1,8 +1,10 @@
 # react-cscarousel
-A re-usable responsive React carousel component which lazy loads files.
+A re-usable responsive React carousel component.
 
 # Notes
-Files are displayed in the order they are presented in the **files** array prop. This means that the file at index 0 is the first displayed file in the carousel.
+- Lazy loading: Files are lazy loaded to make the component more responsive, and avoid downloading files which are not displayed.
+- File order: Files are displayed in the order they are presented in the **files** array prop. This means that the file at index 0 is the first displayed file in the carousel.
+- Thumbnails: If used alongside a list of thumbnails, it is recommended that the thumbnail images are created separately and with a reduced size. Otherwise this will default the lazy loading aspect of the carousel.
 
 # Exported Functions
 - **ShowFileFromIndex**: Programatically scroll the carousel to the file at the specified index.
