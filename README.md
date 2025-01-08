@@ -1,5 +1,5 @@
 # react-cscarousel
-A re-usable responsive React carousel component.
+A re-usable responsive React carousel component as used in https://blythemillsheds.co.uk/.
 
 # Notes
 - Lazy loading: Files are lazy loaded to make the component more responsive, and avoid downloading files which are not displayed.
