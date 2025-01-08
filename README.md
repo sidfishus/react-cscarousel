@@ -4,7 +4,7 @@ A re-usable responsive React carousel component.
 # Notes
 - Lazy loading: Files are lazy loaded to make the component more responsive, and avoid downloading files which are not displayed.
 - File order: Files are displayed in the order they are presented in the **files** array prop. This means that the file at index 0 is the first displayed file in the carousel.
-- Thumbnails: If used alongside a list of thumbnails, it is recommended that the thumbnail images are created separately and with a reduced size. Otherwise this will default the lazy loading aspect of the carousel.
+- Thumbnails: If used alongside a list of thumbnails, it is recommended that the thumbnail images are created separately and with a reduced size. Otherwise this will stop the lazy loading aspect of the carousel.
 - Styles: Don't forget to import "react-cscarousel/dist/styles.scss" otherwise the styling won't work!
 
 # Exported Functions
@@ -111,5 +111,5 @@ Index.scss
 }
 ```
 
-Produces
+Produces:
 ![Carousel with thumbnails](https://github.com/sidfishus/react-cscarousel/blob/main/carousel-example.png)
