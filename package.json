@@ -3,7 +3,7 @@
   "repository": "sidfishus/react-cscarousel",
   "author": "sidfishus",
   "description": "A responsive re-usable React carousel component.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "license": "GPL-3.0",
   "types": "./dist/index.d.ts",

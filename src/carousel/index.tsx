@@ -10,7 +10,6 @@ export type CarouselProps<FILE_T extends CarouselFileDetails> = {
     selectedId: bigint|null;
     setSelectedFile: SetSelectedFileFunc<FILE_T>;
     fileDir?: string;
-    showThumbnails?: boolean|undefined;
     autoChangeMs?: number;
     loadFileOverride?: (url: string) => Promise<string>; // The return is used as the image source.
     shouldLoad: boolean; // Allows the client to override whether files should be loaded.
