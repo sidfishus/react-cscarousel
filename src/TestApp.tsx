@@ -3,6 +3,7 @@ import {Carousel as Carousel, CarouselFileDetails, ShowFileFromIndex} from "./ca
 import {useRef, useState} from "react";
 import "./testapp.scss";
 import {FileGrid} from "react-csfilegrid";
+import "react-csfilegrid/styles.css";
 
 const CreateGalleryImage = (url: string, id: number)=> {
     const x: CarouselFileDetails = {
@@ -62,6 +63,7 @@ export const ReplicatePortfolioInMobile = () => {
                 ref={carouselRef}
                 overrideLeftChevronClass={"PortfolioLeftChevron"}
                 overrideRightChevronClass={"PortfolioRightChevron"}
+                onFileClick={idx => console.log(sharedImages[idx].src + " was clicked.")}
             />
 
             <br />
@@ -86,6 +88,7 @@ export const ReplicateBMS = () => {
 
     const setGallerySelectedImage = (_: number, file: CarouselFileDetails) => setImageId(file.id);
 
+    // Note: in production, the thumbnails should be separate / smaller / reduced file size.
     const thumbnails=bmsImages.map(image => image.src);
 
     const carouselRef=useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
@@ -113,14 +116,12 @@ export const ReplicateBMS = () => {
 
             <br />
 
-            <div style={{width: "100%"}}>
-                <FileGrid
-                    fileDir={"/src/images/bms/"}
-                    files={thumbnails}
-                    selectedIndex={(imageId === null ? 0 : bmsImages.findIndex(img => img.id === imageId))}
-                    onClick={idx => ShowFileFromIndex(carouselRef.current,idx,"smooth")}
-                />
-            </div>
+            <FileGrid
+                fileDir={"/src/images/bms/"}
+                files={thumbnails}
+                selectedIndex={(imageId === null ? 0 : bmsImages.findIndex(img => img.id === imageId))}
+                onClick={idx => ShowFileFromIndex(carouselRef.current,idx,"smooth")}
+            />
 
         </div>
     );

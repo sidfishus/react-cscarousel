@@ -21,6 +21,7 @@ export type CarouselProps<FILE_T extends CarouselFileDetails> = {
     overrideLeftChevronClass?: string;
     overrideRightChevronClass?: string;
     ref: RefObject<HTMLDivElement>;
+    onFileClick?: (idx: number, file: FILE_T) => void;
 }
 
 export type CarouselFileDetails = {
@@ -329,9 +330,16 @@ function GalleryFileComponent<FILE_T extends CarouselFileDetails>(props: Gallery
     //  and then resizes to the original size.
     // See https://stackoverflow.com/questions/64187659/react-js-image-size-flickers-on-reload-with-object-fit-cover-css-property
     if(fileLoadingState.src) {
+
+        const onClick = mainProps.onFileClick && (!fileLoadingState.isLoading && !fileLoadingState.error)
+            ? () => mainProps.onFileClick!(idx, file)
+            : undefined;
+
         return (
             <div className={fileContainerClass}>
-                <div className={getFileClass(fileLoadingState.isLoading)} style={{backgroundImage: `url('${fileLoadingState.src}')`}} />
+                <div className={getFileClass(fileLoadingState.isLoading)}
+                     style={{backgroundImage: `url('${fileLoadingState.src}')`}} onClick={onClick}
+                />
             </div>
         );
     }

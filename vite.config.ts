@@ -8,7 +8,7 @@ export default defineConfig({
   build: {
     lib: {
       name: "react-cscarousel",
-      entry: ["src/index.tsx"],
+      entry: ["src/carousel/index.tsx"],
     },
     rollupOptions: {
       external: ["react", "react-dom","react/jsx-runtime", "react-cslib", "@sidfishus/cslib"],
