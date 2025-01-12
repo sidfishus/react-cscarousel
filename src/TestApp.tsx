@@ -72,7 +72,7 @@ export const ReplicatePortfolioInMobile = () => {
                 fileDir={"/src/images/"}
                 files={thumbnails}
                 selectedIndex={(imageId === null ? 0 : bmsImages.findIndex(img => img.id === imageId))}
-                onClick={idx => ShowFileFromIndex(carouselRef.current,idx,"smooth")}
+                onClick={idx => ShowFileFromIndex(carouselRef.current!,idx,"smooth")}
                 overrideFileClass={(isSelected)=>
                     (isSelected ? "PortfolioFileGridSelectedFile" : "PortfolioFileGridFile")}
             />
@@ -120,7 +120,7 @@ export const ReplicateBMS = () => {
                 fileDir={"/src/images/bms/"}
                 files={thumbnails}
                 selectedIndex={(imageId === null ? 0 : bmsImages.findIndex(img => img.id === imageId))}
-                onClick={idx => ShowFileFromIndex(carouselRef.current,idx,"smooth")}
+                onClick={idx => ShowFileFromIndex(carouselRef.current!,idx,"smooth")}
             />
 
         </div>

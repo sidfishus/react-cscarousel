@@ -1,4 +1,4 @@
-import {RefObject, useEffect, useRef, useState} from "react";
+import {ForwardedRef, forwardRef, RefObject, useEffect, useRef, useState} from "react";
 import {DispatchSetStateAction} from "react-cslib";
 import {DelayedFunction, ResettableTimer} from "@sidfishus/cslib";
 import "./index.scss";
@@ -20,7 +20,6 @@ export type CarouselProps<FILE_T extends CarouselFileDetails> = {
     chevronUrl?: string;
     overrideLeftChevronClass?: string;
     overrideRightChevronClass?: string;
-    ref: RefObject<HTMLDivElement>;
     onFileClick?: (idx: number, file: FILE_T) => void;
 }
 
@@ -44,7 +43,7 @@ type CarouselState = {
     loadingState: Map<bigint /* File ID */,FileLoadingState>;
 }
 
-export function Carousel<FILE_T extends CarouselFileDetails>(props: CarouselProps<FILE_T>) {
+function CarouselInner<FILE_T extends CarouselFileDetails>(props: CarouselProps<FILE_T>, ref: ForwardedRef<HTMLDivElement>) {
 
     const { files, chevronUrl, autoChangeMs } = props;
 
@@ -57,20 +56,20 @@ export function Carousel<FILE_T extends CarouselFileDetails>(props: CarouselProp
 
     const delaySetSelectedFile=ResettableTimer();
 
-    const carouselRef=props.ref;
+    const carouselRef=ref as RefObject<HTMLDivElement>; //sidtodo
 
     const CarouselScroll =
         carouselRef.current
-            ? ()=>OnCarouselScroll(props,carouselRef.current, delaySetSelectedFile, fileNonState, fileState, files)
+            ? ()=>OnCarouselScroll(props,carouselRef.current!, delaySetSelectedFile, fileNonState, fileState, files)
             : undefined;
 
 
     const ScrollLeft = () => {
-        ShowFile(props, curIdx=> GetCarouselFileLeftIdx(curIdx, files), carouselRef.current,false, "smooth", fileNonState);
+        ShowFile(props, curIdx=> GetCarouselFileLeftIdx(curIdx, files), carouselRef.current!,false, "smooth", fileNonState);
     }
 
     const ScrollRight = () => {
-        ShowFile(props, curIdx=> GetCarouselFileRightIdx(curIdx, files), carouselRef.current,false, "smooth", fileNonState);
+        ShowFile(props, curIdx=> GetCarouselFileRightIdx(curIdx, files), carouselRef.current!,false, "smooth", fileNonState);
     }
 
     const getChevronClass = props.overrideLeftChevronClass
@@ -119,6 +118,9 @@ export function Carousel<FILE_T extends CarouselFileDetails>(props: CarouselProp
         </div>
     );
 }
+
+export const Carousel = forwardRef(CarouselInner) as <FILE_T extends CarouselFileDetails>(
+    props: CarouselProps<FILE_T> & { ref: ForwardedRef<HTMLDivElement> }) => ReturnType<typeof CarouselInner>;
 
 const CreateDefaultState = <FILE_T extends CarouselFileDetails,> (props: CarouselProps<FILE_T>): CarouselState => {
     const { files } = props;
