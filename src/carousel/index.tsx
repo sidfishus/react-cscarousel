@@ -53,21 +53,24 @@ export function Carousel<FILE_T extends CarouselFileDetails>(props: CarouselProp
     const fileNonState=useRef<FileNonState>({
         selectedId: (props.selectedId === null ? files[0].id : props.selectedId),
         loadingIdList: new Set<bigint>()
-    });
+    }).current;
 
     const delaySetSelectedFile=ResettableTimer();
 
     const carouselRef=props.ref;
 
     const CarouselScroll =
-        ()=>OnCarouselScroll(props,carouselRef, delaySetSelectedFile, fileNonState, fileState, files);
+        carouselRef.current
+            ? ()=>OnCarouselScroll(props,carouselRef.current, delaySetSelectedFile, fileNonState, fileState, files)
+            : undefined;
+
 
     const ScrollLeft = () => {
-        ShowFile(props, curIdx=> GetCarouselFileLeftIdx(curIdx, files), carouselRef,false, "smooth", fileNonState);
+        ShowFile(props, curIdx=> GetCarouselFileLeftIdx(curIdx, files), carouselRef.current,false, "smooth", fileNonState);
     }
 
     const ScrollRight = () => {
-        ShowFile(props, curIdx=> GetCarouselFileRightIdx(curIdx, files), carouselRef,false, "smooth", fileNonState);
+        ShowFile(props, curIdx=> GetCarouselFileRightIdx(curIdx, files), carouselRef.current,false, "smooth", fileNonState);
     }
 
     const getChevronClass = props.overrideLeftChevronClass
@@ -95,7 +98,7 @@ export function Carousel<FILE_T extends CarouselFileDetails>(props: CarouselProp
                     return (
                         <GalleryFileComponent
                             idx={idx} state={fileState} SetState={SetFileState} key={idx}
-                            loadingNonState={fileNonState} carouselRef={carouselRef} mainProps={props}
+                            loadingNonState={fileNonState} carouselRef={carouselRef.current} mainProps={props}
                         />
                     );
                 })}
@@ -145,8 +148,8 @@ const GetCarouselFileRightIdx = (idx: number, files: CarouselFileDetails[]): num
 }
 
 const OnCarouselScroll = <FILE_T extends CarouselFileDetails,>(
-    mainProps: CarouselProps<FILE_T>, ref: RefObject<HTMLDivElement>,
-    delaySetSelectedFile: DelayedFunction, nonState: RefObject<FileNonState>, fileState: CarouselState,
+    mainProps: CarouselProps<FILE_T>, ref: HTMLDivElement,
+    delaySetSelectedFile: DelayedFunction, nonState: FileNonState, fileState: CarouselState,
     files: CarouselFileDetails[]): void => {
 
     const filesDisplayed=GetFilesDisplayed(ref, files);
@@ -177,15 +180,15 @@ const GetClientXInRelationToFileIndex = (x: number, fileIndex: number, carousel:
 
 const SetCurrentFile = <FILE_T extends CarouselFileDetails,>(
     mainProps: CarouselProps<FILE_T>, index: number,
-    nonState: RefObject<FileNonState>): void => {
+    nonState: FileNonState): void => {
 
     const { setSelectedFile, files } = mainProps;
 
     const file=files[index]!;
 
-    if(file.id !== nonState.current.selectedId) {
+    if(file.id !== nonState.selectedId) {
 
-        nonState.current.selectedId=file.id;
+        nonState.selectedId=file.id;
         setSelectedFile(index, file);
     }
 }
@@ -203,22 +206,22 @@ export const ShowFileFromIndex = (carouselRef: HTMLDivElement, index: number, sc
 
 const ShowFile = <FILE_T extends CarouselFileDetails,>(
     mainProps: CarouselProps<FILE_T>, getIdx: (idx: number)=>number,
-    carouselRef: RefObject<HTMLDivElement>, scrollVertical: boolean, scrollBehaviour: ScrollBehavior,
-    galleryFileNonState: RefObject<FileNonState>) => {
+    carouselRef: HTMLDivElement, scrollVertical: boolean, scrollBehaviour: ScrollBehavior,
+    galleryFileNonState: FileNonState) => {
 
     const { files } = mainProps;
 
-    const currentIndex=files.findIndex(iterFile => iterFile.id === galleryFileNonState.current.selectedId);
+    const currentIndex=files.findIndex(iterFile => iterFile.id === galleryFileNonState.selectedId);
 
     const newIdx=getIdx(currentIndex);
 
     if(scrollVertical)
         window.scrollTo(0, 0);
 
-    ShowFileFromIndex(carouselRef.current,newIdx,scrollBehaviour);
+    ShowFileFromIndex(carouselRef,newIdx,scrollBehaviour);
 };
 
-const FileIndexIsDisplayedOrNextToDisplayed = (carouselRef: RefObject<HTMLDivElement>,
+const FileIndexIsDisplayedOrNextToDisplayed = (carouselRef: HTMLDivElement,
                                                files: CarouselFileDetails[], idx: number): boolean => {
 
     if(files.length === 1)
@@ -240,7 +243,7 @@ const FileIndexIsDisplayedOrNextToDisplayed = (carouselRef: RefObject<HTMLDivEle
 }
 
 const FileIndexIsDisplayed = (
-    carouselRef: RefObject<HTMLDivElement>, files: CarouselFileDetails[], idx: number): boolean => {
+    carouselRef: HTMLDivElement, files: CarouselFileDetails[], idx: number): boolean => {
 
     if(files.length === 1)
         return true;
@@ -253,9 +256,9 @@ const FileIndexIsDisplayed = (
     return (displayedFiles.length === 2 && displayedFiles[1] === idx);
 }
 
-const GetFilesDisplayed = (carouselRef: RefObject<HTMLDivElement>, files: CarouselFileDetails[]): number[] => {
-    const scrollX=carouselRef.current?.scrollLeft;
-    const fileWidth=carouselRef.current.offsetWidth;
+const GetFilesDisplayed = (carouselRef: HTMLDivElement, files: CarouselFileDetails[]): number[] => {
+    const scrollX=carouselRef.scrollLeft;
+    const fileWidth=carouselRef.offsetWidth;
 
     const currentIdxWithDecimal=scrollX/fileWidth;
     const currentIdx=Math.round(currentIdxWithDecimal);
@@ -272,9 +275,9 @@ const GetFilesDisplayed = (carouselRef: RefObject<HTMLDivElement>, files: Carous
     return [currentIdx, GetCarouselFileRightIdx(currentIdx,files)];
 }
 
-const GetCurrentFileIndex = (carouselRef: RefObject<HTMLDivElement>) => {
-    const scrollX=carouselRef.current?.scrollLeft;
-    const fileWidth=carouselRef.current.offsetWidth;
+const GetCurrentFileIndex = (carouselRef: HTMLDivElement) => {
+    const scrollX=carouselRef.scrollLeft;
+    const fileWidth=carouselRef.offsetWidth;
 
     let currentIdx=Math.round(scrollX/fileWidth);
 
@@ -291,8 +294,8 @@ type GalleryFileComponentProps<FILE_T extends CarouselFileDetails> = {
     idx: number;
     state: CarouselState;
     SetState: DispatchSetStateAction<CarouselState>;
-    loadingNonState: RefObject<FileNonState>;
-    carouselRef: RefObject<HTMLDivElement>;
+    loadingNonState: FileNonState;
+    carouselRef: HTMLDivElement|null;
 };
 
 function GalleryFileComponent<FILE_T extends CarouselFileDetails>(props: GalleryFileComponentProps<FILE_T>) {
@@ -349,23 +352,23 @@ function GalleryFileComponent<FILE_T extends CarouselFileDetails>(props: Gallery
         : mainProps.autoLoadLeftAndRightFiles;
 
     const loadFile=
-        ShouldLoadFile(carouselRef, autoLoadLeftAndRightFiles, files, idx, loadingNonState.current, mainProps.shouldLoad);
+        ShouldLoadFile(carouselRef, autoLoadLeftAndRightFiles, files, idx, loadingNonState, mainProps.shouldLoad);
 
     if(loadFile) {
         if (loadFileOverride) {
-            loadingNonState.current.loadingIdList.add(file.id);
+            loadingNonState.loadingIdList.add(file.id);
 
             const fullUrl=FileFullUrl(mainProps, file.src);
 
             loadFileOverride(fullUrl).then((url: string) => {
-                loadingNonState.current.loadingIdList.delete(file.id);
+                loadingNonState.loadingIdList.delete(file.id);
                 SetState(curState => MutateStateSetFileLoadedState(curState, {
                     src: url,
                     error: false,
                     isLoading: false
                 }, file.id, true));
             }).catch(() => {
-                loadingNonState.current.loadingIdList.delete(file.id);
+                loadingNonState.loadingIdList.delete(file.id);
 
                 SetState(curState => MutateStateSetFileLoadedState(curState, {
                     src: fullUrl,
@@ -377,11 +380,11 @@ function GalleryFileComponent<FILE_T extends CarouselFileDetails>(props: Gallery
             const domFile = new Image();
             domFile.src = FileFullUrl(mainProps, file.src);
 
-            loadingNonState.current.loadingIdList.add(file.id);
+            loadingNonState.loadingIdList.add(file.id);
 
             domFile.onload = () => {
 
-                loadingNonState.current.loadingIdList.delete(file.id);
+                loadingNonState.loadingIdList.delete(file.id);
                 SetState(curState => MutateStateSetFileLoadedState(curState, {
                     isLoading: false,
                     src: domFile.src,
@@ -389,7 +392,7 @@ function GalleryFileComponent<FILE_T extends CarouselFileDetails>(props: Gallery
                 }, file.id, true));
             }
             domFile.onerror = () => {
-                loadingNonState.current.loadingIdList.delete(file.id);
+                loadingNonState.loadingIdList.delete(file.id);
 
                 SetState(curState => MutateStateSetFileLoadedState(curState, {
                     src: domFile.src,
@@ -399,7 +402,7 @@ function GalleryFileComponent<FILE_T extends CarouselFileDetails>(props: Gallery
             }
         }
 
-        const isFirstTimeLoad = !carouselRef.current;
+        const isFirstTimeLoad = !carouselRef;
 
         if (isFirstTimeLoad) {
 
@@ -433,7 +436,7 @@ function GalleryFileComponent<FILE_T extends CarouselFileDetails>(props: Gallery
 }
 
 const ShouldLoadFile =
-    (carouselRef: RefObject<HTMLDivElement>, autoLoadLeftAndRightFiles: boolean|undefined,
+    (carouselRef: HTMLDivElement|null, autoLoadLeftAndRightFiles: boolean|undefined,
      files: CarouselFileDetails[], idx: number, loadingNonState: FileNonState, shouldLoadClientOverride: boolean) => {
 
         const file=files[idx];
@@ -442,7 +445,7 @@ const ShouldLoadFile =
             return true;
 
         // If there's no ref then this is the first time we have drawn the UI
-        if(!carouselRef.current) {
+        if(!carouselRef) {
             if(!autoLoadLeftAndRightFiles)
                 return idx === 0;
 
