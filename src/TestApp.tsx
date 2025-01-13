@@ -44,7 +44,10 @@ export const ReplicatePortfolioInMobile = () => {
 
     const setGallerySelectedImage = (_: number, file: CarouselFileDetails) => setImageId(file.id);
 
-    const thumbnails=sharedImages.map(image => image.src);
+    const images=[...sharedImages];
+    images[0].additionalClass="FileLevelClass";
+
+    const thumbnails=images.map(image => image.src);
 
     const carouselRef=useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
 

@@ -27,6 +27,7 @@ export type CarouselProps<FILE_T extends CarouselFileDetails> = {
 export type CarouselFileDetails = {
     src: string;
     id: bigint;
+    additionalClass?: string;
 }
 
 type FileLoadingState = {
@@ -320,9 +321,14 @@ function GalleryFileComponent<FILE_T extends CarouselFileDetails>(props: Gallery
             ? "CarouselFileLoading"
             : "CarouselFile";
 
-        return mainProps.additionalFileClass
+        const classWIP=mainProps.additionalFileClass
             ? baseFileClass + " " + mainProps.additionalFileClass(isLoading)
             : baseFileClass;
+
+        if(!isLoading && file.additionalClass)
+            return classWIP + " " + file.additionalClass;
+
+        return classWIP
     }
 
     //console.log(JSON.stringify(file) + " loadingIdListHasFile?: " + loadingNonState.current.loadingIdList.has(file.id)
